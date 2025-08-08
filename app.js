@@ -17,6 +17,10 @@ const addBtn = $('#addBtn');
 const filters = $('#filters');
 const list = $('#list');
 const empty = $('#empty');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
+
 
 // Init categories
 CATEGORIES.forEach(c => {
@@ -150,6 +154,77 @@ function render() {
   renderFilters();
   renderList();
 }
+function exportJSON() {
+  const payload = { version: 1, items };
+  const data = JSON.stringify(payload, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'closet-export.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+exportBtn.addEventListener('click', exportJSON);
+
+importBtn.addEventListener('click', () => importFile.click());
+
+importFile.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const json = JSON.parse(text);
+
+    // Accept either { items: [...] } or just [...]
+    const incoming = Array.isArray(json?.items) ? json.items :
+                     Array.isArray(json) ? json : null;
+
+    if (!incoming) throw new Error('Invalid file format');
+
+    // Basic validation
+    const valid = incoming.filter(it =>
+      it &&
+      typeof it.id === 'string' &&
+      typeof it.name === 'string' &&
+      typeof it.category === 'string' &&
+      typeof it.imageDataURL === 'string'
+    );
+
+    if (!valid.length) {
+      alert('No valid items found in file.');
+      return;
+    }
+
+    const replace = confirm('Replace existing items with imported? OK = REPLACE, Cancel = MERGE');
+
+    if (replace) {
+      items = valid;
+    } else {
+      // Merge by id (keep existing if duplicate id)
+      const map = new Map(items.map(i => [i.id, i]));
+      for (const it of valid) {
+        if (!map.has(it.id)) map.set(it.id, it);
+      }
+      items = Array.from(map.values());
+    }
+
+    saveItems();
+    render();
+    alert(`Imported ${valid.length} item(s).`);
+  } catch (err) {
+    console.error(err);
+    alert('Import failed: ' + err.message);
+  } finally {
+    // reset input so selecting same file again still triggers change
+    e.target.value = '';
+  }
+});
+
 
 loadItems();
 render();
