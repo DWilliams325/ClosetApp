@@ -1,0 +1,41 @@
+:root {
+  --border:#aaa; --muted:#666; --brand:#0af; --danger:#e11; --dangerbg:#fee; --ok:#0a7;
+}
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+  margin:0;
+  background:#f7f7f7;
+  color:#111;
+}
+.wrap{max-width:960px;margin:0 auto;padding:20px}
+h1{font-size:20px;margin:8px 0 16px}
+label{display:block;margin:12px 0 6px;font-weight:700}
+input[type="text"], select{
+  width:100%; padding:10px; border:1px solid var(--border);
+  border-radius:6px; background:#fff; color:#000;
+}
+.row{display:flex; align-items:center; gap:12px; margin:14px 0}
+.btn{border:0; border-radius:6px; padding:10px 14px; cursor:pointer; font-weight:700}
+.btn-brand{background:var(--brand); color:#fff}
+.btn-ghost{background:#fff; border:1px solid var(--border)}
+.btn-danger{background:var(--dangerbg); border:1px solid var(--danger); color:#b00; padding:6px 8px}
+.btn-edit{background:#eafff6; border:1px solid var(--ok); color:#086; padding:6px 8px}
+
+.preview{
+  width:70px; height:88px; border:1px solid #ddd; border-radius:6px;
+  background:#f5f5f5; display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:#666;
+}
+
+.list-title{margin:18px 0 8px; font-weight:700; font-size:16px}
+.filters{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px}
+.chip{border:1px solid #ccc; padding:6px 10px; border-radius:16px; background:#fff; cursor:pointer; font-weight:600; color:#444}
+.chip.active{border-color:var(--brand); background:#eaf4ff; color:#0a5}
+
+.scroller{display:flex; gap:12px; overflow-x:auto; padding:12px 8px}
+.card{flex:0 0 120px; background:#fff; border:1px solid #e6e6e6; border-radius:12px; padding:8px}
+.card img{width:100%; height:120px; object-fit:cover; border-radius:8px; background:#eee; margin-bottom:8px}
+.card .name{font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card .cat{color:#666; font-size:13px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.empty{color:#666; text-align:center; padding:16px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

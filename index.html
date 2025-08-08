@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClosetTracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>ClosetTracker</h1>
+
+    <label for="name">Clothing Name</label>
+    <input id="name" type="text" placeholder="e.g. Blue Hoodie" />
+
+    <label for="category">Category</label>
+    <select id="category">
+      <option value="">Select a category...</option>
+    </select>
+
+    <div class="row">
+      <label for="photo" class="sr-only">Photo</label>
+      <input id="photo" type="file" accept="image/*" />
+      <div id="preview" class="preview">Preview</div>
+      <button id="addBtn" class="btn btn-brand">Add Item</button>
+    </div>
+
+    <div class="list-title">Virtual Closet</div>
+    <div id="filters" class="filters"></div>
+    <div id="list" class="scroller"></div>
+    <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
