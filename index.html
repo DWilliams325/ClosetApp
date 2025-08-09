@@ -16,7 +16,7 @@
 
       <div class="grid-2">
         <div class="field">
-          <label for="name">Name</label>
+          <label for="name">Name (optional)</label>
           <input id="name" type="text" placeholder="e.g. Blue Hoodie"
                  autocapitalize="words" autocomplete="off" inputmode="text" enterkeyhint="done"/>
         </div>
@@ -25,6 +25,13 @@
           <label for="category">Category</label>
           <select id="category">
             <option value="">Select a category...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="color">Color</label>
+          <select id="color">
+            <option value="">Select a color...</option>
           </select>
         </div>
       </div>
@@ -37,7 +44,7 @@
             <span class="dz-sub">Drag & drop or click to browse (you can pick multiple)</span>
           </div>
         </div>
-        <!-- allow camera capture; still supports gallery + multi-select -->
+        <!-- allow camera capture; supports gallery + multi-select -->
         <input id="photo" type="file" accept="image/*" capture="environment" class="sr-only" multiple />
       </div>
 
@@ -48,7 +55,7 @@
       </div>
     </div>
 
-    <!-- Share/Import Preview Modal -->
+    <!-- Share/Import Preview Modal (optional) -->
     <div id="importModal" class="modal" style="display:none">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
@@ -109,6 +116,6 @@
     <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
   </div>
 
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </body>
 </html>
