@@ -24,6 +24,33 @@
       <div id="preview" class="preview">Preview</div>
       <button id="addBtn" class="btn btn-brand">Add Item</button>
     </div>
+    <div class="controls">
+  <button id="exportBtn" class="btn btn-ghost">Export JSON</button>
+  <button id="importBtn" class="btn btn-ghost">Import JSON</button>
+  <button id="shareBtn"  class="btn btn-ghost">Share Link</button>
+  <input id="importFile" type="file" accept="application/json" class="sr-only" />
+</div>
+
+<!-- Share/Import Preview Modal -->
+<div id="importModal" class="modal" style="display:none">
+  <div class="modal-backdrop"></div>
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Preview Import</div>
+      <button id="closeModal" class="btn btn-ghost">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="modalSummary" class="modal-summary"></p>
+      <div id="modalGrid" class="modal-grid"></div>
+      <p class="modal-hint">Only the first few items are shown here.</p>
+    </div>
+    <div class="modal-actions">
+      <button id="modalReplace" class="btn btn-danger">Replace</button>
+      <button id="modalMerge"   class="btn btn-brand">Import (Merge)</button>
+    </div>
+  </div>
+</div>
+
 
     <div class="list-title">Virtual Closet</div>
     <div class="controls">
@@ -37,6 +64,6 @@
     <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
   </div>
 
-<script src="app.js?v=5" defer></script>
+<script src="app.js?v=6" defer></script>
 </body>
 </html>

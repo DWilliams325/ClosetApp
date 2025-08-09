@@ -23,9 +23,18 @@ const addBtn = $('#addBtn');
 const filters = $('#filters');
 const list = $('#list');
 const empty = $('#empty');
+
 const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
+const shareBtn   = document.getElementById('shareBtn');
+const importModal = document.getElementById('importModal');
+const closeModal  = document.getElementById('closeModal');
+const modalSummary= document.getElementById('modalSummary');
+const modalGrid   = document.getElementById('modalGrid');
+const modalReplace= document.getElementById('modalReplace');
+const modalMerge  = document.getElementById('modalMerge');
+
 
 
 // Init categories
@@ -191,6 +200,19 @@ function exportJSON() {
   }
 }
 
+// UTF-8 safe base64
+function toB64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function fromB64(b64){
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+function openModal(){ importModal.style.display = 'flex'; }
+function closeModalFn(){ importModal.style.display = 'none'; }
+closeModal.addEventListener('click', closeModalFn);
+importModal.querySelector('.modal-backdrop').addEventListener('click', closeModalFn);
+
 
 exportBtn.addEventListener('click', exportJSON);
 
@@ -248,7 +270,97 @@ importFile.addEventListener('change', async (e) => {
     e.target.value = '';
   }
 });
+shareBtn.addEventListener('click', async () => {
+  try {
+    const payload = { version: 1, items };
+    const json = JSON.stringify(payload);
+    const b64 = toB64(json);
+    const base = location.origin + location.pathname; // keep same page
+    const url  = `${base}?import=${encodeURIComponent(b64)}`;
+
+    // Try clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+      alert('Share link copied to clipboard!\n\nSend it to your friend.');
+    } else {
+      // Fallback
+      prompt('Copy this link:', url);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Failed to create share link.');
+  }
+});
 
 
 loadItems();
 render();
+// Handle ?import=... on load
+(function handleImportParam(){
+  const params = new URLSearchParams(location.search);
+  const raw = params.get('import');
+  if (!raw) return;
+
+  let incoming = null;
+  try {
+    const json = fromB64(decodeURIComponent(raw));
+    const parsed = JSON.parse(json);
+    const arr = Array.isArray(parsed?.items) ? parsed.items :
+                Array.isArray(parsed) ? parsed : null;
+    if (!arr) throw new Error('Invalid format');
+
+    // Basic validation
+    const valid = arr.filter(it =>
+      it &&
+      typeof it.id === 'string' &&
+      typeof it.name === 'string' &&
+      typeof it.category === 'string' &&
+      typeof it.imageDataURL === 'string'
+    );
+
+    if (!valid.length) throw new Error('No valid items');
+
+    // Render preview
+    modalSummary.textContent = `This link contains ${valid.length} item${valid.length!==1?'s':''}. Preview:`;
+    modalGrid.innerHTML = '';
+    valid.slice(0, 12).forEach(it => {
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      div.innerHTML = `
+        <img src="${it.imageDataURL}" alt="">
+        <div class="n">${it.name}</div>
+        <div class="c">${it.category}</div>
+      `;
+      modalGrid.appendChild(div);
+    });
+
+    // Hook actions
+    const applyReplace = () => {
+      items = valid;
+      saveItems(); render();
+      closeModalFn();
+      // Clean the URL so it doesn't re-trigger on refresh
+      history.replaceState({}, '', location.pathname);
+      alert('Imported (replaced).');
+    };
+    const applyMerge = () => {
+      const map = new Map(items.map(i => [i.id, i]));
+      for (const it of valid) if (!map.has(it.id)) map.set(it.id, it);
+      items = Array.from(map.values());
+      saveItems(); render();
+      closeModalFn();
+      history.replaceState({}, '', location.pathname);
+      alert('Imported (merged).');
+    };
+
+    modalReplace.onclick = applyReplace;
+    modalMerge.onclick   = applyMerge;
+
+    openModal();
+  } catch (e) {
+    console.error('Import link parse failed:', e);
+    alert('Sorry, that import link is invalid or too large.');
+    // Clean the URL so the error doesn't keep popping
+    history.replaceState({}, '', location.pathname);
+  }
+})();
