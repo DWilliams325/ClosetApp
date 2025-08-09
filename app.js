@@ -3,6 +3,12 @@ const CATEGORIES = [
   'Dress','Button Up','T-Shirt','Crop-Top','Dress Pants','Khaki Shorts',
   'Basketball Shorts','Skirts','Hoodies','Sweats'
 ];
+console.log('app.js loaded');
+console.log('buttons:',
+  !!document.getElementById('exportBtn'),
+  !!document.getElementById('importBtn'),
+  !!document.getElementById('importFile')
+);
 
 let items = [];
 let activeFilter = 'All';
@@ -155,18 +161,36 @@ function render() {
   renderList();
 }
 function exportJSON() {
-  const payload = { version: 1, items };
-  const data = JSON.stringify(payload, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'closet-export.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  try {
+    const payload = { version: 1, items };
+    const data = JSON.stringify(payload, null, 2);
+
+    if (window.Blob && window.URL && URL.createObjectURL) {
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'closet-export.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // Fallback: data URL
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+    a.download = 'closet-export.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    console.error('Export failed:', err);
+    alert('Export failed: ' + err.message);
+  }
 }
+
 
 exportBtn.addEventListener('click', exportJSON);
 
