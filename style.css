@@ -33,12 +33,15 @@ label {
 
 input[type="text"], 
 select {
-  width: 70%;
+  width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: #fff;
   color: #000;
+}
+#name {
+  width: 70% !important;
 }
 
 .row {
