@@ -3,12 +3,6 @@ const CATEGORIES = [
   'Dress','Button Up','T-Shirt','Crop-Top','Dress Pants','Khaki Shorts',
   'Basketball Shorts','Skirts','Hoodies','Sweats'
 ];
-console.log('app.js loaded');
-console.log('buttons:',
-  !!document.getElementById('exportBtn'),
-  !!document.getElementById('importBtn'),
-  !!document.getElementById('importFile')
-);
 
 let items = [];
 let activeFilter = 'All';
@@ -24,9 +18,6 @@ const filters = $('#filters');
 const list = $('#list');
 const empty = $('#empty');
 
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const importFile = document.getElementById('importFile');
 const shareBtn   = document.getElementById('shareBtn');
 const importModal = document.getElementById('importModal');
 const closeModal  = document.getElementById('closeModal');
@@ -35,8 +26,6 @@ const modalGrid   = document.getElementById('modalGrid');
 const modalReplace= document.getElementById('modalReplace');
 const modalMerge  = document.getElementById('modalMerge');
 
-
-
 // Init categories
 CATEGORIES.forEach(c => {
   const opt = document.createElement('option');
@@ -44,7 +33,7 @@ CATEGORIES.forEach(c => {
   catSelect.appendChild(opt);
 });
 
-// Load items
+// storage
 function loadItems() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -55,7 +44,7 @@ function saveItems() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-// File to DataURL
+// file -> data URL
 function fileToDataURL(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -65,6 +54,7 @@ function fileToDataURL(file) {
   });
 }
 
+// add form
 photoInput.addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) { lastSelectedFileDataURL = null; preview.textContent = 'Preview'; return; }
@@ -92,6 +82,7 @@ addBtn.addEventListener('click', () => {
   render();
 });
 
+// render
 function renderFilters() {
   filters.innerHTML = '';
   ['All', ...CATEGORIES].forEach(c => {
@@ -102,7 +93,6 @@ function renderFilters() {
     filters.appendChild(chip);
   });
 }
-
 function renderList() {
   const data = activeFilter === 'All' ? items : items.filter(it => it.category === activeFilter);
   list.innerHTML = '';
@@ -164,126 +154,29 @@ function renderList() {
     list.appendChild(card);
   });
 }
+function render() { renderFilters(); renderList(); }
 
-function render() {
-  renderFilters();
-  renderList();
-}
-function exportJSON() {
-  try {
-    const payload = { version: 1, items };
-    const data = JSON.stringify(payload, null, 2);
-
-    if (window.Blob && window.URL && URL.createObjectURL) {
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'closet-export.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    // Fallback: data URL
-    const a = document.createElement('a');
-    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
-    a.download = 'closet-export.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch (err) {
-    console.error('Export failed:', err);
-    alert('Export failed: ' + err.message);
-  }
-}
-
-// UTF-8 safe base64
-function toB64(str){
-  return btoa(unescape(encodeURIComponent(str)));
-}
-function fromB64(b64){
-  return decodeURIComponent(escape(atob(b64)));
-}
-
+// share link helpers
+function toB64(str){ return btoa(unescape(encodeURIComponent(str))); }
+function fromB64(b64){ return decodeURIComponent(escape(atob(b64))); }
 function openModal(){ importModal.style.display = 'flex'; }
 function closeModalFn(){ importModal.style.display = 'none'; }
 closeModal.addEventListener('click', closeModalFn);
 importModal.querySelector('.modal-backdrop').addEventListener('click', closeModalFn);
 
-
-exportBtn.addEventListener('click', exportJSON);
-
-importBtn.addEventListener('click', () => importFile.click());
-
-importFile.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const json = JSON.parse(text);
-
-    // Accept either { items: [...] } or just [...]
-    const incoming = Array.isArray(json?.items) ? json.items :
-                     Array.isArray(json) ? json : null;
-
-    if (!incoming) throw new Error('Invalid file format');
-
-    // Basic validation
-    const valid = incoming.filter(it =>
-      it &&
-      typeof it.id === 'string' &&
-      typeof it.name === 'string' &&
-      typeof it.category === 'string' &&
-      typeof it.imageDataURL === 'string'
-    );
-
-    if (!valid.length) {
-      alert('No valid items found in file.');
-      return;
-    }
-
-    const replace = confirm('Replace existing items with imported? OK = REPLACE, Cancel = MERGE');
-
-    if (replace) {
-      items = valid;
-    } else {
-      // Merge by id (keep existing if duplicate id)
-      const map = new Map(items.map(i => [i.id, i]));
-      for (const it of valid) {
-        if (!map.has(it.id)) map.set(it.id, it);
-      }
-      items = Array.from(map.values());
-    }
-
-    saveItems();
-    render();
-    alert(`Imported ${valid.length} item(s).`);
-  } catch (err) {
-    console.error(err);
-    alert('Import failed: ' + err.message);
-  } finally {
-    // reset input so selecting same file again still triggers change
-    e.target.value = '';
-  }
-});
+// share link
 shareBtn.addEventListener('click', async () => {
   try {
     const payload = { version: 1, items };
     const json = JSON.stringify(payload);
     const b64 = toB64(json);
-    const base = location.origin + location.pathname; // keep same page
+    const base = location.origin + location.pathname;
     const url  = `${base}?import=${encodeURIComponent(b64)}`;
 
-    // Try clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
       alert('Share link copied to clipboard!\n\nSend it to your friend.');
     } else {
-      // Fallback
       prompt('Copy this link:', url);
     }
   } catch (e) {
@@ -292,16 +185,12 @@ shareBtn.addEventListener('click', async () => {
   }
 });
 
-
-loadItems();
-render();
-// Handle ?import=... on load
+// consume share link on load
 (function handleImportParam(){
   const params = new URLSearchParams(location.search);
   const raw = params.get('import');
   if (!raw) return;
 
-  let incoming = null;
   try {
     const json = fromB64(decodeURIComponent(raw));
     const parsed = JSON.parse(json);
@@ -309,18 +198,15 @@ render();
                 Array.isArray(parsed) ? parsed : null;
     if (!arr) throw new Error('Invalid format');
 
-    // Basic validation
     const valid = arr.filter(it =>
-      it &&
-      typeof it.id === 'string' &&
+      it && typeof it.id === 'string' &&
       typeof it.name === 'string' &&
       typeof it.category === 'string' &&
       typeof it.imageDataURL === 'string'
     );
-
     if (!valid.length) throw new Error('No valid items');
 
-    // Render preview
+    // preview
     modalSummary.textContent = `This link contains ${valid.length} item${valid.length!==1?'s':''}. Preview:`;
     modalGrid.innerHTML = '';
     valid.slice(0, 12).forEach(it => {
@@ -334,33 +220,29 @@ render();
       modalGrid.appendChild(div);
     });
 
-    // Hook actions
-    const applyReplace = () => {
+    // actions
+    modalReplace.onclick = () => {
       items = valid;
-      saveItems(); render();
-      closeModalFn();
-      // Clean the URL so it doesn't re-trigger on refresh
+      saveItems(); render(); closeModalFn();
       history.replaceState({}, '', location.pathname);
       alert('Imported (replaced).');
     };
-    const applyMerge = () => {
+    modalMerge.onclick = () => {
       const map = new Map(items.map(i => [i.id, i]));
       for (const it of valid) if (!map.has(it.id)) map.set(it.id, it);
       items = Array.from(map.values());
-      saveItems(); render();
-      closeModalFn();
+      saveItems(); render(); closeModalFn();
       history.replaceState({}, '', location.pathname);
       alert('Imported (merged).');
     };
-
-    modalReplace.onclick = applyReplace;
-    modalMerge.onclick   = applyMerge;
 
     openModal();
   } catch (e) {
     console.error('Import link parse failed:', e);
     alert('Sorry, that import link is invalid or too large.');
-    // Clean the URL so the error doesn't keep popping
     history.replaceState({}, '', location.pathname);
   }
 })();
+
+loadItems();
+render();
