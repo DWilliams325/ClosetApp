@@ -16,7 +16,7 @@
 
       <div class="grid-2">
         <div class="field">
-          <label for="name">Name</label>
+          <label for="name">Name (optional)</label>
           <input id="name" type="text" placeholder="e.g. Blue Hoodie"
                  autocapitalize="words" autocomplete="off" inputmode="text" enterkeyhint="done"/>
         </div>
@@ -27,17 +27,24 @@
             <option value="">Select a category...</option>
           </select>
         </div>
+
+        <div class="field">
+          <label for="color">Color</label>
+          <select id="color">
+            <option value="">Select a color...</option>
+          </select>
+        </div>
       </div>
 
       <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload photo">
         <div class="dz-inner">
           <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
-          <div class="dz-text">
+        <div class="dz-text">
             <strong>Upload photo</strong>
             <span class="dz-sub">Drag & drop or click to browse (you can pick multiple)</span>
           </div>
         </div>
-        <!-- allow camera capture; still supports gallery + multi-select -->
+        <!-- allow camera capture; supports gallery + multi-select -->
         <input id="photo" type="file" accept="image/*" capture="environment" class="sr-only" multiple />
       </div>
 
@@ -48,7 +55,7 @@
       </div>
     </div>
 
-    <!-- Share/Import Preview Modal -->
+    <!-- Share/Import Preview Modal (optional) -->
     <div id="importModal" class="modal" style="display:none">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
@@ -109,6 +116,44 @@
     <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
   </div>
 
-  <script src="app.js?v=8" defer></script>
+  <!-- EDIT ITEM MODAL (new) -->
+  <div id="editModal" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">Edit Item</div>
+        <button id="editClose" class="btn btn-ghost">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2">
+          <div class="field">
+            <label for="editName">Name (optional)</label>
+            <input id="editName" type="text" placeholder="e.g. Blue Hoodie" />
+          </div>
+          <div class="field">
+            <label for="editCategory">Category</label>
+            <select id="editCategory"></select>
+          </div>
+          <div class="field">
+            <label for="editColor">Color</label>
+            <select id="editColor"></select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="editPhotoBtn" class="btn btn-edit">Replace Photo</button>
+          <input id="editPhoto" type="file" accept="image/*" class="sr-only" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="editDelete" class="btn btn-danger">Delete</button>
+        <div style="flex:1"></div>
+        <button id="editSave" class="btn btn-brand">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=10" defer></script>
 </body>
 </html>
