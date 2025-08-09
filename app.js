@@ -8,43 +8,48 @@ let items = [];
 let activeFilter = 'All';
 let lastSelectedFileDataURL = null;
 
+// Shorthands & elements
 const $ = (sel) => document.querySelector(sel);
-const nameInput = $('#name');
-const catSelect = $('#category');
-const photoInput = $('#photo');
-const preview = $('#preview');
-const addBtn = $('#addBtn');
-const filters = $('#filters');
-const list = $('#list');
-const empty = $('#empty');
+const nameInput   = $('#name');
+const catSelect   = $('#category');
+const addBtn      = $('#addBtn');
+const filters     = $('#filters');
+const list        = $('#list');
+const empty       = $('#empty');
 
-const shareBtn   = document.getElementById('shareBtn');
-const importModal = document.getElementById('importModal');
-const closeModal  = document.getElementById('closeModal');
-const modalSummary= document.getElementById('modalSummary');
-const modalGrid   = document.getElementById('modalGrid');
-const modalReplace= document.getElementById('modalReplace');
-const modalMerge  = document.getElementById('modalMerge');
+// Share / modal elements
+const shareBtn     = $('#shareBtn');
+const importModal  = $('#importModal');
+const closeModal   = $('#closeModal');
+const modalSummary = $('#modalSummary');
+const modalGrid    = $('#modalGrid');
+const modalReplace = $('#modalReplace');
+const modalMerge   = $('#modalMerge');
 
-// Init categories
-CATEGORIES.forEach(c => {
-  const opt = document.createElement('option');
-  opt.value = c; opt.textContent = c;
-  catSelect.appendChild(opt);
-});
+// Dropzone elements
+const dropzone   = $('#dropzone');
+const dzThumb    = $('#dzThumb');
+const photoInput = $('#photo'); // hidden file input inside dropzone
 
-// storage
+// ---------- Helpers ----------
+function validateForm() {
+  const ok = nameInput.value.trim() && catSelect.value.trim() && !!lastSelectedFileDataURL;
+  addBtn.disabled = !ok;
+}
+
 function loadItems() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     items = raw ? JSON.parse(raw) : [];
-  } catch { items = []; }
+  } catch {
+    items = [];
+  }
 }
+
 function saveItems() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-// file -> data URL
 function fileToDataURL(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -54,35 +59,93 @@ function fileToDataURL(file) {
   });
 }
 
-// add form
-photoInput.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) { lastSelectedFileDataURL = null; preview.textContent = 'Preview'; return; }
-  lastSelectedFileDataURL = await fileToDataURL(file);
-  preview.textContent = '';
-  preview.style.background = 'transparent';
-  preview.innerHTML = `<img src="${lastSelectedFileDataURL}" alt="preview" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />`;
+// ---------- Init categories ----------
+CATEGORIES.forEach(c => {
+  const opt = document.createElement('option');
+  opt.value = c;
+  opt.textContent = c;
+  catSelect.appendChild(opt);
 });
 
+// ---------- Dropzone behavior ----------
+// Click/keyboard to open file picker
+dropzone.addEventListener('click', () => photoInput.click());
+dropzone.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    photoInput.click();
+  }
+});
+
+// Drag & drop
+['dragenter','dragover'].forEach(ev => {
+  dropzone.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.add('dragover');
+  });
+});
+['dragleave','drop'].forEach(ev => {
+  dropzone.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.remove('dragover');
+  });
+});
+
+dropzone.addEventListener('drop', async (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!file) return;
+  lastSelectedFileDataURL = await fileToDataURL(file);
+  dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
+  validateForm();
+});
+
+// File input change (fallback)
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) {
+    lastSelectedFileDataURL = null;
+    dzThumb.style.backgroundImage = '';
+    validateForm();
+    return;
+  }
+  lastSelectedFileDataURL = await fileToDataURL(file);
+  dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
+  validateForm();
+});
+
+// Validate on other fields
+nameInput.addEventListener('input', validateForm);
+catSelect.addEventListener('change', validateForm);
+
+// ---------- Add item ----------
 addBtn.addEventListener('click', () => {
   const name = nameInput.value.trim();
   const category = catSelect.value.trim();
+
   if (!name || !category) { alert('Please fill in both fields.'); return; }
   if (!lastSelectedFileDataURL) { alert('Add a photo first.'); return; }
 
-  const newItem = { id: Date.now().toString(), name, category, imageDataURL: lastSelectedFileDataURL };
+  const newItem = {
+    id: Date.now().toString(),
+    name,
+    category,
+    imageDataURL: lastSelectedFileDataURL
+  };
+
   items.push(newItem);
   saveItems();
 
+  // Reset form
   nameInput.value = '';
   catSelect.value = '';
   lastSelectedFileDataURL = null;
-  preview.style.background = '#f5f5f5';
-  preview.textContent = 'Preview';
+  dzThumb.style.backgroundImage = '';
+  validateForm();
+
   render();
 });
 
-// render
+// ---------- Render ----------
 function renderFilters() {
   filters.innerHTML = '';
   ['All', ...CATEGORIES].forEach(c => {
@@ -93,6 +156,7 @@ function renderFilters() {
     filters.appendChild(chip);
   });
 }
+
 function renderList() {
   const data = activeFilter === 'All' ? items : items.filter(it => it.category === activeFilter);
   list.innerHTML = '';
@@ -123,13 +187,15 @@ function renderList() {
     editBtn.textContent = 'Edit Photo';
     editBtn.addEventListener('click', async () => {
       const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*';
+      input.type = 'file';
+      input.accept = 'image/*';
       input.onchange = async () => {
         const f = input.files && input.files[0];
         if (!f) return;
         const dataURL = await fileToDataURL(f);
         items = items.map(x => x.id === it.id ? { ...x, imageDataURL: dataURL } : x);
-        saveItems(); render();
+        saveItems();
+        render();
       };
       input.click();
     });
@@ -140,7 +206,8 @@ function renderList() {
     delBtn.addEventListener('click', () => {
       if (!confirm(`Remove "${it.name}"?`)) return;
       items = items.filter(x => x.id !== it.id);
-      saveItems(); render();
+      saveItems();
+      render();
     });
 
     const btnRow = document.createElement('div');
@@ -154,17 +221,21 @@ function renderList() {
     list.appendChild(card);
   });
 }
-function render() { renderFilters(); renderList(); }
 
-// share link helpers
+function render() {
+  renderFilters();
+  renderList();
+}
+
+// ---------- Share link + modal ----------
 function toB64(str){ return btoa(unescape(encodeURIComponent(str))); }
 function fromB64(b64){ return decodeURIComponent(escape(atob(b64))); }
+
 function openModal(){ importModal.style.display = 'flex'; }
 function closeModalFn(){ importModal.style.display = 'none'; }
 closeModal.addEventListener('click', closeModalFn);
 importModal.querySelector('.modal-backdrop').addEventListener('click', closeModalFn);
 
-// share link
 shareBtn.addEventListener('click', async () => {
   try {
     const payload = { version: 1, items };
@@ -185,7 +256,7 @@ shareBtn.addEventListener('click', async () => {
   }
 });
 
-// consume share link on load
+// Handle ?import=... on load
 (function handleImportParam(){
   const params = new URLSearchParams(location.search);
   const raw = params.get('import');
@@ -206,7 +277,7 @@ shareBtn.addEventListener('click', async () => {
     );
     if (!valid.length) throw new Error('No valid items');
 
-    // preview
+    // Preview
     modalSummary.textContent = `This link contains ${valid.length} item${valid.length!==1?'s':''}. Preview:`;
     modalGrid.innerHTML = '';
     valid.slice(0, 12).forEach(it => {
@@ -220,7 +291,7 @@ shareBtn.addEventListener('click', async () => {
       modalGrid.appendChild(div);
     });
 
-    // actions
+    // Actions
     modalReplace.onclick = () => {
       items = valid;
       saveItems(); render(); closeModalFn();
@@ -244,5 +315,7 @@ shareBtn.addEventListener('click', async () => {
   }
 })();
 
+// ---------- Boot ----------
 loadItems();
 render();
+validateForm(); // ensure Add button starts disabled

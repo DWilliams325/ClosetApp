@@ -10,23 +10,40 @@
   <div class="wrap">
     <h1>ClosetTracker</h1>
 
-    <label for="name">Clothing Name</label>
-    <input id="name" type="text" placeholder="e.g. Blue Hoodie" />
+    <!-- Add Item Card -->
+<div class="card add-card">
+  <h2 class="card-title">Add a Clothing Item</h2>
 
-    <label for="category">Category</label>
-    <select id="category">
-      <option value="">Select a category...</option>
-    </select>
-
-    <div class="row">
-      <label for="photo" class="sr-only">Photo</label>
-      <input id="photo" type="file" accept="image/*" />
-      <div id="preview" class="preview">Preview</div>
-      <button id="addBtn" class="btn btn-brand">Add Item</button>
+  <div class="grid-2">
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" type="text" placeholder="e.g. Blue Hoodie" />
     </div>
-  <div class="controls">
-  <button id="shareBtn" class="btn btn-ghost">Share Link</button>
+
+    <div class="field">
+      <label for="category">Category</label>
+      <select id="category">
+        <option value="">Select a category...</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload photo">
+    <div class="dz-inner">
+      <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
+      <div class="dz-text">
+        <strong>Upload photo</strong>
+        <span class="dz-sub">Drag & drop or click to browse</span>
+      </div>
+    </div>
+    <input id="photo" type="file" accept="image/*" class="sr-only" />
+  </div>
+
+  <div class="actions">
+    <button id="addBtn" class="btn btn-brand" disabled>Add Item</button>
+  </div>
 </div>
+
 
 <!-- Share/Import Preview Modal -->
 <div id="importModal" class="modal" style="display:none">
