@@ -40,6 +40,7 @@
         </div>
       </div>
 
+      <!-- Camera/Gallery Dropzone -->
       <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload photo">
         <div class="dz-inner">
           <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
@@ -49,6 +50,20 @@
           </div>
         </div>
         <input id="photo" type="file" accept="image/*" capture="environment" class="sr-only" multiple />
+      </div>
+
+      <!-- NEW: Image URL option -->
+      <div class="field" style="margin-top:10px;">
+        <label for="imageUrl">Or paste an image URL</label>
+        <div class="row" style="gap:8px;">
+          <input id="imageUrl" type="url" placeholder="https://example.com/photo.jpg" inputmode="url" style="flex:1" />
+          <button id="useUrlBtn" class="btn btn-ghost">Use URL</button>
+        </div>
+<div class="modal-hint">
+  Tip: Right-click an online image (or long-press on phone) and choose
+  <strong>“Copy Image Address/URL”</strong>, then paste it here.
+  Direct links usually end with <code>.jpg</code>, <code>.png</code>, or <code>.webp</code>.
+</div>
       </div>
 
       <div class="actions actions-split">
@@ -155,10 +170,19 @@
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px;">
+        <div class="row" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
           <button id="editPhotoBtn" class="btn btn-edit">Replace Photo</button>
           <input id="editPhoto" type="file" accept="image/*" class="sr-only" />
+
+          <!-- NEW: Replace via URL -->
+          <input id="editImageUrl" type="url" placeholder="https://example.com/photo.jpg" inputmode="url" style="flex:1; min-width:240px;" />
+          <button id="editUseUrlBtn" class="btn btn-ghost">Use URL</button>
         </div>
+<div class="modal-hint">
+  Tip: Right-click (or long-press) the image online and select
+  <strong>“Copy Image Address/URL”</strong>, then paste it above.
+  If a site blocks downloads, we’ll still keep and display the URL.
+</div>
       </div>
 
       <div class="modal-actions">
@@ -169,7 +193,7 @@
     </div>
   </div>
 
-  <!-- OUTFIT BUILDER MODAL (new) -->
+  <!-- OUTFIT BUILDER MODAL (unchanged structure except earlier tweak) -->
   <div id="outfitModal" class="modal" style="display:none">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
@@ -179,7 +203,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- Filters (optional, to narrow down items) -->
         <div class="grid-2">
           <div class="field">
             <label for="outfitCatFilter">Filter by Category</label>
@@ -195,20 +218,17 @@
           </div>
         </div>
 
-        <!-- Select from closet -->
         <div class="list-title" style="margin-top:12px;">Your Closet</div>
         <div id="outfitGrid" class="modal-grid"></div>
         <p class="modal-hint">Tap items to select; tap again to unselect.</p>
 
-        <!-- Selected preview (split) -->
-<div class="list-title" style="margin-top:12px;">Selected — Tops</div>
-<div id="outfitSelectedTops" class="scroller"></div>
+        <!-- Selected (split) -->
+        <div class="list-title" style="margin-top:12px;">Selected — Tops</div>
+        <div id="outfitSelectedTops" class="scroller"></div>
 
-<div class="list-title" style="margin-top:12px;">Selected — Bottoms</div>
-<div id="outfitSelectedBottoms" class="scroller"></div>
+        <div class="list-title" style="margin-top:12px;">Selected — Bottoms</div>
+        <div id="outfitSelectedBottoms" class="scroller"></div>
 
-
-        <!-- Outfit name (optional) -->
         <div class="field" style="margin-top:12px;">
           <label for="outfitName">Outfit name (optional)</label>
           <input id="outfitName" type="text" placeholder="e.g. Casual Friday" />
@@ -223,6 +243,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=12" defer></script>
+  <script src="app.js?v=13" defer></script>
 </body>
 </html>

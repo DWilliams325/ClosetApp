@@ -1,8 +1,8 @@
 // ---------- Constants ----------
-const STORAGE_KEY = 'closetItems';
-const OUTFIT_KEY  = 'closetOutfits';
+const STORAGE_KEY  = 'closetItems';
+const OUTFIT_KEY   = 'closetOutfits';
 const LAST_CAT_KEY = 'closetLastCategory';
-const THEME_KEY = 'closetTheme';
+const THEME_KEY    = 'closetTheme';
 
 // Shorthand first so it's available everywhere
 const $ = (sel) => document.querySelector(sel);
@@ -33,6 +33,12 @@ const COLORS = [
   { name: 'Purple', hex: '#800080' }
 ];
 
+// Tops/Bottoms groupings for outfits
+const TOPS_CATS = new Set(['Button Up', 'T-Shirt', 'Crop-Top', 'Hoodies', 'Dress']);
+const BOTTOMS_CATS = new Set(['Dress Pants', 'Khaki Shorts', 'Basketball Shorts', 'Skirts', 'Sweats']);
+function isTopCategory(cat){ return TOPS_CATS.has(cat); }
+function isBottomCategory(cat){ return BOTTOMS_CATS.has(cat); }
+
 // ---------- Theme helpers ----------
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -45,7 +51,8 @@ function applyTheme(theme) {
 let items = [];
 let outfits = [];
 let activeFilter = 'All';
-let lastSelectedFileDataURL = null;
+let lastSelectedFileDataURL = null; // from camera/gallery
+let lastSelectedImageURL    = null; // from URL field
 
 // Speed Add state
 let speedStream = null;
@@ -65,6 +72,10 @@ const filters     = $('#filters');
 const list        = $('#list');
 const empty       = $('#empty');
 
+// Add via URL
+const imageUrlInput = $('#imageUrl');
+const useUrlBtn     = $('#useUrlBtn');
+
 // Speed Add
 const speedBtn    = $('#speedBtn');
 const speedModal  = $('#speedModal');
@@ -78,15 +89,6 @@ const speedThumbs = $('#speedThumbs');
 const speedCount  = $('#speedCount');
 const speedCategory = $('#speedCategory');
 const speedGallery    = $('#speedGallery');
-// Which categories count as tops vs bottoms
-const TOPS_CATS = new Set(['Button Up', 'T-Shirt', 'Crop-Top', 'Hoodies', 'Dress']);
-const BOTTOMS_CATS = new Set(['Dress Pants', 'Khaki Shorts', 'Basketball Shorts', 'Skirts', 'Sweats']);
-const outfitSelectedTops = $('#outfitSelectedTops');
-const outfitSelectedBottoms = $('#outfitSelectedBottoms');
-
-function isTopCategory(cat){ return TOPS_CATS.has(cat); }
-function isBottomCategory(cat){ return BOTTOMS_CATS.has(cat); }
-
 
 // Theme select
 const themeSelect = document.querySelector('#themeSelect');
@@ -114,6 +116,8 @@ const editPhoto     = $('#editPhoto');
 const editPhotoBtn  = $('#editPhotoBtn');
 const editDelete    = $('#editDelete');
 const editSave      = $('#editSave');
+const editImageUrl  = $('#editImageUrl');
+const editUseUrlBtn = $('#editUseUrlBtn');
 
 // Outfit UI
 const outfitBtn      = $('#outfitBtn');
@@ -125,13 +129,13 @@ const outfitClose    = $('#outfitClose');
 const outfitCatFilter= $('#outfitCatFilter');
 const outfitColorFilter = $('#outfitColorFilter');
 const outfitGrid     = $('#outfitGrid');
-const outfitSelected = $('#outfitSelected');
+const outfitSelectedTops = $('#outfitSelectedTops');
+const outfitSelectedBottoms = $('#outfitSelectedBottoms');
 const outfitName     = $('#outfitName');
 const outfitClear    = $('#outfitClear');
 const outfitSaveBtn  = $('#outfitSave');
 
 // ---------- Helpers ----------
-
 function colorNameFromHex(hex){ return (COLORS.find(c=>c.hex===hex)?.name) || ''; }
 
 function populateCategories(selectEl, withAllPrompt=false){
@@ -152,8 +156,21 @@ function populateColorSelect(sel, withAllPrompt=false){
   });
 }
 
+function getImageSrc(it){
+  // Prefer dataURL (offline-safe). Fallback to remote URL.
+  return it.imageDataURL || it.imageURL || '';
+}
+
+function looksLikeUrl(u){
+  try {
+    const url = new URL(u);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch { return false; }
+}
+
 function validateForm() {
-  const ok = catSelect.value.trim() && !!lastSelectedFileDataURL;
+  // require category + either local photo OR a URL
+  const ok = catSelect.value.trim() && (!!lastSelectedFileDataURL || !!lastSelectedImageURL);
   addBtn.disabled = !ok;
 }
 
@@ -175,10 +192,14 @@ function getLastCategory(){ return localStorage.getItem(LAST_CAT_KEY) || ''; }
 function toB64(str){ return btoa(unescape(encodeURIComponent(str))); }
 function fromB64(b64){ return decodeURIComponent(escape(atob(b64))); }
 
-// Draft preserve (no name anymore)
+// Draft preserve (supports URL or dataURL)
 const DRAFT_KEY='closetDraft';
 function saveDraft(){
-  const d={ category:catSelect.value, thumb:lastSelectedFileDataURL||'' };
+  const d={
+    category: catSelect.value,
+    // store whichever is present
+    thumb: lastSelectedFileDataURL || lastSelectedImageURL || ''
+  };
   localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
 }
 function loadDraft(){
@@ -186,7 +207,16 @@ function loadDraft(){
     const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');
     if (!d) return;
     if (d.category) catSelect.value=d.category;
-    if (d.thumb){ lastSelectedFileDataURL=d.thumb; dzThumb.style.backgroundImage=`url('${d.thumb}')`; }
+    if (d.thumb){
+      if (d.thumb.startsWith('data:')){
+        lastSelectedFileDataURL = d.thumb;
+        lastSelectedImageURL = null;
+      } else {
+        lastSelectedImageURL = d.thumb;
+        lastSelectedFileDataURL = null;
+      }
+      dzThumb.style.backgroundImage=`url('${d.thumb}')`;
+    }
   }catch{}
 }
 
@@ -267,7 +297,7 @@ loadOutfits();
 loadDraft();
 validateForm();
 
-// ---------- Dropzone ----------
+// ---------- Dropzone (camera/gallery) ----------
 dropzone.addEventListener('click', () => photoInput.click());
 dropzone.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photoInput.click(); }
@@ -281,8 +311,10 @@ dropzone.addEventListener('keydown', (e) => {
 dropzone.addEventListener('drop', async (e) => {
   const file = e.dataTransfer.files && e.dataTransfer.files[0];
   if (!file) return;
-  lastSelectedFileDataURL = await compressFileToDataURL_Mobile(file);
-  dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
+  const data = await compressFileToDataURL_Mobile(file);
+  lastSelectedFileDataURL = data;
+  lastSelectedImageURL = null;
+  dzThumb.style.backgroundImage = `url('${data}')`;
   validateForm();
   saveDraft();
 });
@@ -291,7 +323,8 @@ dropzone.addEventListener('drop', async (e) => {
 photoInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
   if (!files.length) {
-    lastSelectedFileDataURL = null; dzThumb.style.backgroundImage = ''; validateForm(); saveDraft(); return;
+    lastSelectedFileDataURL = null; lastSelectedImageURL = null;
+    dzThumb.style.backgroundImage = ''; validateForm(); saveDraft(); return;
   }
   if (files.length > 1) {
     if (!catSelect.value) { alert('Pick a Category first, then select multiple photos to batch add.'); return; }
@@ -311,19 +344,38 @@ photoInput.addEventListener('change', async (e) => {
       });
     }
     saveItems();
-    lastSelectedFileDataURL=null; dzThumb.style.backgroundImage=''; validateForm(); render();
+    lastSelectedFileDataURL=null; lastSelectedImageURL=null;
+    dzThumb.style.backgroundImage=''; validateForm(); render();
     alert(`Imported ${files.length} items to ${category}.`);
     return;
   }
   const file = files[0];
-  lastSelectedFileDataURL = await compressFileToDataURL_Mobile(file);
-  dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
+  const data = await compressFileToDataURL_Mobile(file);
+  lastSelectedFileDataURL = data;
+  lastSelectedImageURL = null;
+  dzThumb.style.backgroundImage = `url('${data}')`;
+  validateForm();
+  saveDraft();
+});
+
+// ---------- Add via URL ----------
+useUrlBtn?.addEventListener('click', () => {
+  const u = (imageUrlInput?.value || '').trim();
+  if (!looksLikeUrl(u)) { alert('Please paste a valid http(s) image URL.'); return; }
+  lastSelectedImageURL = u;
+  lastSelectedFileDataURL = null;
+  dzThumb.style.backgroundImage = `url('${u}')`;
   validateForm();
   saveDraft();
 });
 
 // Category changes
-catSelect.addEventListener('change', () => { setLastCategory(catSelect.value); speedCategory.value = catSelect.value; validateForm(); saveDraft(); });
+catSelect.addEventListener('change', () => {
+  setLastCategory(catSelect.value);
+  speedCategory.value = catSelect.value;
+  validateForm();
+  saveDraft();
+});
 
 // ---------- Add item ----------
 addBtn.addEventListener('click', () => {
@@ -332,21 +384,24 @@ addBtn.addEventListener('click', () => {
   const colorName = colorNameFromHex(colorHex);
 
   if (!category) { alert('Pick a category.'); return; }
-  if (!lastSelectedFileDataURL) { alert('Add a photo first.'); return; }
+  if (!lastSelectedFileDataURL && !lastSelectedImageURL) { alert('Add a photo or URL first.'); return; }
 
   const newItem = {
     id: Date.now().toString(),
     category,
-    colorHex, colorName,
-    imageDataURL: lastSelectedFileDataURL
+    colorHex, colorName
   };
+  if (lastSelectedFileDataURL) newItem.imageDataURL = lastSelectedFileDataURL;
+  else newItem.imageURL = lastSelectedImageURL;
 
   items.push(newItem);
   saveItems();
 
   setLastCategory(category);
   if (colorSelect) colorSelect.value = '';
-  lastSelectedFileDataURL = null; dzThumb.style.backgroundImage = '';
+  lastSelectedFileDataURL = null; lastSelectedImageURL = null;
+  dzThumb.style.backgroundImage = '';
+  if (imageUrlInput) imageUrlInput.value = '';
   validateForm();
   localStorage.removeItem(DRAFT_KEY);
   render();
@@ -374,7 +429,7 @@ function renderList() {
 
     const img = document.createElement('img');
     img.loading='lazy'; img.decoding='async';
-    img.src = it.imageDataURL; img.alt = it.category;
+    img.src = getImageSrc(it); img.alt = it.category;
     card.appendChild(img);
 
     const catEl = document.createElement('div'); catEl.className = 'cat'; catEl.textContent = it.category; card.appendChild(catEl);
@@ -395,7 +450,7 @@ function renderList() {
     delBtn.className = 'btn btn-danger'; delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', () => {
       if (!confirm(`Delete this item?`)) return;
-      items = items.filter(x => x.id !== it.id); saveItems(); render(); renderOutfits(); // refresh outfits too
+      items = items.filter(x => x.id !== it.id); saveItems(); render(); renderOutfits();
     });
 
     const btnRow = document.createElement('div');
@@ -411,7 +466,7 @@ function render() { renderFilters(); renderList(); }
 if (shareBtn) {
   shareBtn.addEventListener('click', async () => {
     try {
-      const payload = { version: 2, items };
+      const payload = { version: 3, items };
       const json = JSON.stringify(payload);
       const b64 = toB64(json);
       const base = location.origin + location.pathname;
@@ -432,7 +487,8 @@ if (shareBtn) {
     const valid = arr.filter(it =>
       it && typeof it.id==='string' &&
       typeof it.category==='string' &&
-      typeof it.imageDataURL==='string'
+      // must have either a dataURL or a URL
+      (typeof it.imageDataURL==='string' || typeof it.imageURL==='string')
     );
     if (!valid.length) throw new Error('No valid items');
 
@@ -440,9 +496,10 @@ if (shareBtn) {
     modalGrid.innerHTML = '';
     valid.slice(0, 12).forEach(it => {
       const colorText = it.colorName || it.colorHex || '';
+      const src = getImageSrc(it);
       const div = document.createElement('div'); div.className = 'thumb';
       div.innerHTML = `
-        <img src="${it.imageDataURL}" alt="">
+        <img src="${src}" alt="">
         <div class="c">${it.category}${colorText ? ' • ' + colorText : ''}</div>
       `;
       modalGrid.appendChild(div);
@@ -520,7 +577,7 @@ speedShutter?.addEventListener('click', async ()=>{
   updateSpeedUI();
 });
 
-// Add from Gallery inside Speed Add (trigger via <label for="speedGallery"> in HTML)
+// Add from Gallery (triggered via label)
 speedGallery?.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []).filter(f => /^image\//.test(f.type));
   if (!files.length) return;
@@ -564,6 +621,7 @@ function openEditModal(item){
   editingId = item.id;
   if (editCategory)  editCategory.value = item.category || '';
   if (editColor)     editColor.value = item.colorHex || '';
+  if (editImageUrl)  editImageUrl.value = item.imageURL || '';
   editModal.style.display = 'flex';
 }
 function closeEditModal(){
@@ -578,9 +636,18 @@ editPhoto?.addEventListener('change', async (e)=>{
   const f = e.target.files && e.target.files[0];
   if (!f || !editingId) return;
   const dataURL = await compressFileToDataURL_Mobile(f);
-  items = items.map(x => x.id===editingId ? {...x, imageDataURL: dataURL} : x);
+  items = items.map(x => x.id===editingId ? {...x, imageDataURL: dataURL, imageURL: undefined} : x);
   saveItems(); render(); renderOutfits();
   alert('Photo updated.');
+});
+
+editUseUrlBtn?.addEventListener('click', ()=>{
+  if (!editingId) return;
+  const u = (editImageUrl?.value || '').trim();
+  if (!looksLikeUrl(u)) { alert('Please paste a valid http(s) image URL.'); return; }
+  items = items.map(x => x.id===editingId ? {...x, imageURL: u, imageDataURL: undefined} : x);
+  saveItems(); render(); renderOutfits();
+  alert('Image updated from URL.');
 });
 
 editDelete?.addEventListener('click', ()=>{
@@ -614,7 +681,6 @@ function closeOutfitModal(){
 }
 
 function drawOutfitGrid(){
-  // filter
   const cat = outfitCatFilter.value;
   const colorHex = outfitColorFilter.value;
   const data = items.filter(it => {
@@ -631,7 +697,7 @@ function drawOutfitGrid(){
     div.setAttribute('data-id', it.id);
     const sel = outfitSelectedIds.has(it.id);
     div.innerHTML = `
-      <img src="${it.imageDataURL}" alt="">
+      <img src="${getImageSrc(it)}" alt="">
       <div class="c">${it.category}${it.colorName ? ' • ' + it.colorName : ''}</div>
       ${sel ? '<div style="margin-top:4px;font-size:12px;color:var(--accent-color);font-weight:700;">Selected</div>' : ''}
     `;
@@ -658,13 +724,9 @@ function drawOutfitSelected(){
     if (!it) return;
     if (isTopCategory(it.category)) tops.push(it);
     else if (isBottomCategory(it.category)) bottoms.push(it);
-    else {
-      // default to tops if uncategorized—adjust if you add Accessories later
-      tops.push(it);
-    }
+    else tops.push(it); // default bucket
   });
 
-  // Enable/disable Save
   outfitSaveBtn.disabled = (tops.length + bottoms.length) === 0;
 
   function renderRow(container, arr){
@@ -673,7 +735,7 @@ function drawOutfitSelected(){
       c.className = 'card';
       c.style.flex = '0 0 110px';
       c.innerHTML = `
-        <img src="${it.imageDataURL}" alt="${it.category}" style="width:100%;height:110px;object-fit:cover;border-radius:8px;background:#eee;">
+        <img src="${getImageSrc(it)}" alt="${it.category}" style="width:100%;height:110px;object-fit:cover;border-radius:8px;background:#eee;">
         <div class="cat">${it.category}${it.colorName ? ' • ' + it.colorName : ''}</div>
         <button class="btn btn-ghost" style="margin-top:6px;">Remove</button>
       `;
@@ -689,7 +751,6 @@ function drawOutfitSelected(){
   renderRow(outfitSelectedTops, tops);
   renderRow(outfitSelectedBottoms, bottoms);
 }
-
 
 function renderOutfits(){
   outfitList.innerHTML = '';
@@ -707,17 +768,15 @@ function renderOutfits(){
     title.style.marginBottom = '8px';
     title.textContent = of.name || `Outfit (${(of.itemIds||[]).length} items)`;
 
-    // Split into rows
     const chosen = (of.itemIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
     const tops = [];
     const bottoms = [];
     chosen.forEach(it=>{
       if (isTopCategory(it.category)) tops.push(it);
       else if (isBottomCategory(it.category)) bottoms.push(it);
-      else tops.push(it); // default bucket
+      else tops.push(it);
     });
 
-    // Tops row
     const topsRow = document.createElement('div');
     topsRow.style.display = 'grid';
     topsRow.style.gridTemplateColumns = '1fr 1fr';
@@ -725,32 +784,29 @@ function renderOutfits(){
     topsRow.style.marginBottom = '6px';
     tops.slice(0,4).forEach(it=>{
       const img = document.createElement('img');
-      img.src = it.imageDataURL; img.alt = it.category;
+      img.src = getImageSrc(it); img.alt = it.category;
       img.style.width='100%'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
       topsRow.appendChild(img);
     });
     if (!tops.length){
       const ph = document.createElement('div');
-      ph.textContent = 'No tops';
-      ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
+      ph.textContent = 'No tops'; ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
       topsRow.appendChild(ph);
     }
 
-    // Bottoms row
     const bottomsRow = document.createElement('div');
     bottomsRow.style.display = 'grid';
     bottomsRow.style.gridTemplateColumns = '1fr 1fr';
     bottomsRow.style.gap = '4px';
     bottoms.slice(0,4).forEach(it=>{
       const img = document.createElement('img');
-      img.src = it.imageDataURL; img.alt = it.category;
+      img.src = getImageSrc(it); img.alt = it.category;
       img.style.width='100%'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
       bottomsRow.appendChild(img);
     });
     if (!bottoms.length){
       const ph = document.createElement('div');
-      ph.textContent = 'No bottoms';
-      ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
+      ph.textContent = 'No bottoms'; ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
       bottomsRow.appendChild(ph);
     }
 
@@ -776,7 +832,6 @@ function renderOutfits(){
     outfitList.appendChild(card);
   });
 }
-
 
 // open/close + handlers
 outfitBtn?.addEventListener('click', openOutfitModal);
