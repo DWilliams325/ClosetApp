@@ -10,17 +10,22 @@
   <div class="wrap">
     <h1>ClosetTracker</h1>
 
+    <!-- Theme Selector -->
+<div id="themeSelector" style="margin: 10px 0; text-align: right;">
+  <label for="themeSelect" style="font-weight: bold; margin-right: 6px;">Theme:</label>
+  <select id="themeSelect">
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+    <option value="pastel">Pastel</option>
+  </select>
+</div>
+
+
     <!-- Add Item Card -->
     <div class="card add-card">
       <h2 class="card-title">Add a Clothing Item</h2>
 
       <div class="grid-2">
-        <div class="field">
-          <label for="name">Name (optional)</label>
-          <input id="name" type="text" placeholder="e.g. Blue Hoodie"
-                 autocapitalize="words" autocomplete="off" inputmode="text" enterkeyhint="done"/>
-        </div>
-
         <div class="field">
           <label for="category">Category</label>
           <select id="category">
@@ -39,7 +44,7 @@
       <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload photo">
         <div class="dz-inner">
           <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
-        <div class="dz-text">
+          <div class="dz-text">
             <strong>Upload photo</strong>
             <span class="dz-sub">Drag & drop or click to browse (you can pick multiple)</span>
           </div>
@@ -116,7 +121,7 @@
     <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
   </div>
 
-  <!-- EDIT ITEM MODAL (new) -->
+  <!-- EDIT ITEM MODAL (name removed) -->
   <div id="editModal" class="modal" style="display:none">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
@@ -126,10 +131,6 @@
       </div>
       <div class="modal-body">
         <div class="grid-2">
-          <div class="field">
-            <label for="editName">Name (optional)</label>
-            <input id="editName" type="text" placeholder="e.g. Blue Hoodie" />
-          </div>
           <div class="field">
             <label for="editCategory">Category</label>
             <select id="editCategory"></select>
@@ -154,6 +155,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=11" defer></script>
 </body>
 </html>

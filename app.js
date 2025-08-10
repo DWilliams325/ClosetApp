@@ -31,6 +31,18 @@ const COLORS = [
   { name: 'Purple', hex: '#800080' }
 ];
 
+const THEME_KEY = 'closetTheme';
+
+function applyTheme(theme) {
+  // set on <html> so CSS can react: html[data-theme="dark"] { ... }
+  document.documentElement.setAttribute('data-theme', theme);
+  // reflect in the selector if present
+  const sel = document.querySelector('#themeSelect');
+  if (sel && sel.value !== theme) sel.value = theme;
+  // persist
+  localStorage.setItem(THEME_KEY, theme);
+}
+
 // ---------- State ----------
 let items = [];
 let activeFilter = 'All';
@@ -45,7 +57,6 @@ let speedOpen = false;
 let editingId = null;
 
 // ---------- Elements ----------
-const nameInput   = $('#name');
 const catSelect   = $('#category');
 const colorSelect = $('#color');
 const addBtn      = $('#addBtn');
@@ -82,7 +93,6 @@ const photoInput = $('#photo');
 // Edit modal
 const editModal     = $('#editModal');
 const editClose     = $('#editClose');
-const editName      = $('#editName');
 const editCategory  = $('#editCategory');
 const editColor     = $('#editColor');
 const editPhoto     = $('#editPhoto');
@@ -112,7 +122,7 @@ function populateColorSelect(sel){
 }
 
 function validateForm() {
-  // name optional
+  // name removed; require category + photo
   const ok = catSelect.value.trim() && !!lastSelectedFileDataURL;
   addBtn.disabled = !ok;
 }
@@ -129,17 +139,16 @@ function getLastCategory(){ return localStorage.getItem(LAST_CAT_KEY) || ''; }
 function toB64(str){ return btoa(unescape(encodeURIComponent(str))); }
 function fromB64(b64){ return decodeURIComponent(escape(atob(b64))); }
 
-// Draft preserve
+// Draft preserve (no name anymore)
 const DRAFT_KEY='closetDraft';
 function saveDraft(){
-  const d={name:nameInput.value, category:catSelect.value, thumb:lastSelectedFileDataURL||''};
+  const d={ category:catSelect.value, thumb:lastSelectedFileDataURL||'' };
   localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
 }
 function loadDraft(){
   try{
     const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');
     if (!d) return;
-    if (d.name) nameInput.value=d.name;
     if (d.category) catSelect.value=d.category;
     if (d.thumb){ lastSelectedFileDataURL=d.thumb; dzThumb.style.backgroundImage=`url('${d.thumb}')`; }
   }catch{}
@@ -195,11 +204,6 @@ function compressVideoFrameToDataURL(videoEl){
   ctx.drawImage(videoEl, 0, 0, cw, ch);
   return speedCanvas.toDataURL('image/jpeg', 0.8);
 }
-function suggestNameFromFile(file){
-  if (!file?.name) return;
-  const n = file.name.replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' ').trim();
-  if (!nameInput.value) nameInput.value = n;
-}
 
 // ---------- Init ----------
 populateCategories(catSelect);
@@ -231,7 +235,6 @@ dropzone.addEventListener('drop', async (e) => {
   if (!file) return;
   lastSelectedFileDataURL = await compressFileToDataURL_Mobile(file);
   dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
-  suggestNameFromFile(file);
   validateForm();
   saveDraft();
 });
@@ -252,35 +255,27 @@ photoInput.addEventListener('change', async (e) => {
       const f = files[i];
       if (i % 3 === 0) { await new Promise(r => setTimeout(r, 0)); }
       const imageDataURL = await compressFileToDataURL_Mobile(f);
-      const baseName = f.name.replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' ').trim();
       items.push({
         id:(now+i).toString(),
-        name: baseName || `Item ${i+1}`,
         category,
         colorHex, colorName,
         imageDataURL
       });
     }
     saveItems();
-    nameInput.value=''; lastSelectedFileDataURL=null; dzThumb.style.backgroundImage=''; validateForm(); render();
+    lastSelectedFileDataURL=null; dzThumb.style.backgroundImage=''; validateForm(); render();
     alert(`Imported ${files.length} items to ${category}.`);
     return;
   }
   const file = files[0];
   lastSelectedFileDataURL = await compressFileToDataURL_Mobile(file);
   dzThumb.style.backgroundImage = `url('${lastSelectedFileDataURL}')`;
-  suggestNameFromFile(file);
   validateForm();
   saveDraft();
 });
 
 // Validate on other fields
-nameInput.addEventListener('input', () => { validateForm(); saveDraft(); });
 catSelect.addEventListener('change', () => { setLastCategory(catSelect.value); speedCategory.value = catSelect.value; validateForm(); saveDraft(); });
-
-// Enter to submit
-nameInput.addEventListener('keydown', (e)=>{ if (e.key==='Enter' && !addBtn.disabled) addBtn.click(); });
-window.addEventListener('beforeunload', saveDraft);
 
 // ---------- Add item ----------
 addBtn.addEventListener('click', () => {
@@ -291,11 +286,8 @@ addBtn.addEventListener('click', () => {
   if (!category) { alert('Pick a category.'); return; }
   if (!lastSelectedFileDataURL) { alert('Add a photo first.'); return; }
 
-  const safeName = (nameInput.value.trim() || `${category} ${colorName || ''}`).trim();
-
   const newItem = {
     id: Date.now().toString(),
-    name: safeName,
     category,
     colorHex, colorName,
     imageDataURL: lastSelectedFileDataURL
@@ -305,7 +297,6 @@ addBtn.addEventListener('click', () => {
   saveItems();
 
   setLastCategory(category);
-  nameInput.value = '';
   if (colorSelect) colorSelect.value = '';
   lastSelectedFileDataURL = null; dzThumb.style.backgroundImage = '';
   validateForm();
@@ -335,10 +326,8 @@ function renderList() {
 
     const img = document.createElement('img');
     img.loading='lazy'; img.decoding='async';
-    img.src = it.imageDataURL; img.alt = it.name;
+    img.src = it.imageDataURL; img.alt = it.category;
     card.appendChild(img);
-
-    const nameEl = document.createElement('div'); nameEl.className = 'name'; nameEl.textContent = it.name; card.appendChild(nameEl);
 
     const catEl = document.createElement('div'); catEl.className = 'cat'; catEl.textContent = it.category; card.appendChild(catEl);
 
@@ -357,7 +346,7 @@ function renderList() {
     const delBtn = document.createElement('button');
     delBtn.className = 'btn btn-danger'; delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', () => {
-      if (!confirm(`Remove "${it.name}"?`)) return;
+      if (!confirm(`Delete this item?`)) return;
       items = items.filter(x => x.id !== it.id); saveItems(); render();
     });
 
@@ -374,7 +363,7 @@ function render() { renderFilters(); renderList(); }
 if (shareBtn) {
   shareBtn.addEventListener('click', async () => {
     try {
-      const payload = { version: 1, items };
+      const payload = { version: 2, items }; // bump version since schema changed (no name)
       const json = JSON.stringify(payload);
       const b64 = toB64(json);
       const base = location.origin + location.pathname;
@@ -392,14 +381,23 @@ if (shareBtn) {
     const parsed = JSON.parse(json);
     const arr = Array.isArray(parsed?.items) ? parsed.items : Array.isArray(parsed) ? parsed : null;
     if (!arr) throw new Error('Invalid format');
-    const valid = arr.filter(it => it && typeof it.id==='string' && typeof it.name==='string' && typeof it.category==='string' && typeof it.imageDataURL==='string');
+    const valid = arr.filter(it =>
+      it && typeof it.id==='string' &&
+      typeof it.category==='string' &&
+      typeof it.imageDataURL==='string'
+      // colorHex/colorName optional
+    );
     if (!valid.length) throw new Error('No valid items');
 
     modalSummary.textContent = `This link contains ${valid.length} item${valid.length!==1?'s':''}. Preview:`;
     modalGrid.innerHTML = '';
     valid.slice(0, 12).forEach(it => {
+      const colorText = it.colorName || it.colorHex || '';
       const div = document.createElement('div'); div.className = 'thumb';
-      div.innerHTML = `<img src="${it.imageDataURL}" alt=""><div class="n">${it.name}</div><div class="c">${it.category}</div>`;
+      div.innerHTML = `
+        <img src="${it.imageDataURL}" alt="">
+        <div class="c">${it.category}${colorText ? ' • ' + colorText : ''}</div>
+      `;
       modalGrid.appendChild(div);
     });
 
@@ -415,6 +413,21 @@ function openModal(){ importModal.style.display = 'flex'; }
 function closeModalFn(){ importModal.style.display = 'none'; }
 closeModal?.addEventListener('click', closeModalFn);
 importModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeModalFn);
+
+
+const themeSelect = document.querySelector('#themeSelect');
+
+// initial theme: saved → else match OS dark → else light
+const savedTheme =
+  localStorage.getItem(THEME_KEY) ||
+  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+applyTheme(savedTheme);
+
+// change listener
+themeSelect?.addEventListener('change', (e) => {
+  const theme = e.target.value; // 'light' | 'dark' | 'pastel'
+  applyTheme(theme);
+});
 
 // ---------- SPEED ADD ----------
 async function startSpeedCamera(){
@@ -486,7 +499,6 @@ speedSave.addEventListener('click', ()=>{
   speedQueue.forEach((q, i)=>{
     items.push({
       id: (t0+i).toString(),
-      name: `${category} ${base}-${i+1}`,
       category,
       colorHex, colorName,
       imageDataURL: q.dataURL
@@ -501,7 +513,6 @@ speedSave.addEventListener('click', ()=>{
 // ---------- EDIT MODAL ----------
 function openEditModal(item){
   editingId = item.id;
-  if (editName)      editName.value = item.name || '';
   if (editCategory)  editCategory.value = item.category || '';
   if (editColor)     editColor.value = item.colorHex || '';
   editModal.style.display = 'flex';
@@ -525,20 +536,16 @@ editPhoto?.addEventListener('change', async (e)=>{
 
 editDelete?.addEventListener('click', ()=>{
   if (!editingId) return;
-  const it = items.find(x=>x.id===editingId);
-  if (it && confirm(`Delete "${it.name || it.category}"?`)){
-    items = items.filter(x=>x.id!==editingId);
-    saveItems(); render(); closeEditModal();
-  }
+  items = items.filter(x=>x.id!==editingId);
+  saveItems(); render(); closeEditModal();
 });
 
 editSave?.addEventListener('click', ()=>{
   if (!editingId) return;
-  const name = editName?.value.trim() || '';
   const category = editCategory?.value.trim() || '';
   const colorHex = editColor?.value || '';
   const colorName = colorNameFromHex(colorHex);
-  items = items.map(x=> x.id===editingId ? {...x, name, category, colorHex, colorName} : x);
+  items = items.map(x=> x.id===editingId ? {...x, category, colorHex, colorName} : x);
   saveItems(); render(); closeEditModal();
 });
 
