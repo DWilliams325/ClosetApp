@@ -134,17 +134,16 @@
           </div>
 
           <div class="speed-actions">
-            <button id="speedUndo" class="btn btn-ghost" disabled>Undo</button>
-            <button id="speedGalleryBtn" class="btn btn-ghost">
-              Add from Gallery
-            </button>
-            <button id="speedShutter" class="btn btn-brand speed-shutter">
-              ●
-            </button>
-            <button id="speedSave" class="btn btn-brand" disabled>
-              Save All
-            </button>
-          </div>
+  <button id="speedUndo" class="btn btn-ghost" disabled>Undo</button>
+
+  <!-- Label triggers file input -->
+  <label for="speedGallery" class="btn btn-ghost">Add from Gallery</label>
+  <input id="speedGallery" type="file" accept="image/*" multiple class="sr-only" />
+
+  <button id="speedShutter" class="btn btn-brand speed-shutter">●</button>
+  <button id="speedSave" class="btn btn-brand" disabled>Save All</button>
+</div>
+
         </div>
       </div>
 

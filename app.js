@@ -485,7 +485,6 @@ speedShutter?.addEventListener('click', async ()=>{
 });
 
 // Add from Gallery inside Speed Add
-speedGalleryBtn?.addEventListener('click', () => speedGallery?.click());
 speedGallery?.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []).filter(f => /^image\//.test(f.type));
   if (!files.length) return;
