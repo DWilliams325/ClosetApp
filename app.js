@@ -1,6 +1,7 @@
 // ---------- Constants ----------
 const STORAGE_KEY = 'closetItems';
 const LAST_CAT_KEY = 'closetLastCategory';
+const THEME_KEY = 'closetTheme';
 
 // Shorthand first so it's available everywhere
 const $ = (sel) => document.querySelector(sel);
@@ -31,15 +32,11 @@ const COLORS = [
   { name: 'Purple', hex: '#800080' }
 ];
 
-const THEME_KEY = 'closetTheme';
-
+// ---------- Theme helpers ----------
 function applyTheme(theme) {
-  // set on <html> so CSS can react: html[data-theme="dark"] { ... }
   document.documentElement.setAttribute('data-theme', theme);
-  // reflect in the selector if present
   const sel = document.querySelector('#themeSelect');
   if (sel && sel.value !== theme) sel.value = theme;
-  // persist
   localStorage.setItem(THEME_KEY, theme);
 }
 
@@ -64,6 +61,7 @@ const filters     = $('#filters');
 const list        = $('#list');
 const empty       = $('#empty');
 
+// Speed Add
 const speedBtn    = $('#speedBtn');
 const speedModal  = $('#speedModal');
 const speedVideo  = $('#speedVideo');
@@ -75,6 +73,11 @@ const speedUndo   = $('#speedUndo');
 const speedThumbs = $('#speedThumbs');
 const speedCount  = $('#speedCount');
 const speedCategory = $('#speedCategory');
+const speedGalleryBtn = $('#speedGalleryBtn');
+const speedGallery    = $('#speedGallery');
+
+// Theme select
+const themeSelect = document.querySelector('#themeSelect');
 
 // Share / import (optional)
 const shareBtn     = $('#shareBtn');
@@ -213,6 +216,13 @@ if (editCategory) populateCategories(editCategory);
 populateColorSelect(colorSelect);
 if (editColor) populateColorSelect(editColor);
 
+// Theme: initial apply (saved → OS dark → light)
+const savedTheme =
+  localStorage.getItem(THEME_KEY) ||
+  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+applyTheme(savedTheme);
+themeSelect?.addEventListener('change', (e)=> applyTheme(e.target.value));
+
 const _lastCat = getLastCategory();
 if (_lastCat) { catSelect.value = _lastCat; speedCategory.value = _lastCat; }
 
@@ -274,7 +284,7 @@ photoInput.addEventListener('change', async (e) => {
   saveDraft();
 });
 
-// Validate on other fields
+// Category changes
 catSelect.addEventListener('change', () => { setLastCategory(catSelect.value); speedCategory.value = catSelect.value; validateForm(); saveDraft(); });
 
 // ---------- Add item ----------
@@ -363,7 +373,7 @@ function render() { renderFilters(); renderList(); }
 if (shareBtn) {
   shareBtn.addEventListener('click', async () => {
     try {
-      const payload = { version: 2, items }; // bump version since schema changed (no name)
+      const payload = { version: 2, items }; // schema v2 (no name)
       const json = JSON.stringify(payload);
       const b64 = toB64(json);
       const base = location.origin + location.pathname;
@@ -385,7 +395,6 @@ if (shareBtn) {
       it && typeof it.id==='string' &&
       typeof it.category==='string' &&
       typeof it.imageDataURL==='string'
-      // colorHex/colorName optional
     );
     if (!valid.length) throw new Error('No valid items');
 
@@ -413,21 +422,6 @@ function openModal(){ importModal.style.display = 'flex'; }
 function closeModalFn(){ importModal.style.display = 'none'; }
 closeModal?.addEventListener('click', closeModalFn);
 importModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeModalFn);
-
-
-const themeSelect = document.querySelector('#themeSelect');
-
-// initial theme: saved → else match OS dark → else light
-const savedTheme =
-  localStorage.getItem(THEME_KEY) ||
-  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-applyTheme(savedTheme);
-
-// change listener
-themeSelect?.addEventListener('change', (e) => {
-  const theme = e.target.value; // 'light' | 'dark' | 'pastel'
-  applyTheme(theme);
-});
 
 // ---------- SPEED ADD ----------
 async function startSpeedCamera(){
@@ -476,12 +470,12 @@ function updateSpeedUI(){
   });
 }
 
-speedBtn.addEventListener('click', openSpeedModal);
-speedClose.addEventListener('click', closeSpeedModal);
-speedModal.querySelector('.modal-backdrop').addEventListener('click', closeSpeedModal);
-speedCategory.addEventListener('change', ()=>{ setLastCategory(speedCategory.value); speedSave.disabled = speedQueue.length === 0 || !speedCategory.value; });
-speedUndo.addEventListener('click', ()=>{ speedQueue.pop(); updateSpeedUI(); });
-speedShutter.addEventListener('click', async ()=>{
+speedBtn?.addEventListener('click', openSpeedModal);
+speedClose?.addEventListener('click', closeSpeedModal);
+speedModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeSpeedModal);
+speedCategory?.addEventListener('change', ()=>{ setLastCategory(speedCategory.value); speedSave.disabled = speedQueue.length === 0 || !speedCategory.value; });
+speedUndo?.addEventListener('click', ()=>{ speedQueue.pop(); updateSpeedUI(); });
+speedShutter?.addEventListener('click', async ()=>{
   if (!speedVideo.videoWidth) return;
   const dataURL = compressVideoFrameToDataURL(speedVideo);
   if (!dataURL) return;
@@ -489,13 +483,33 @@ speedShutter.addEventListener('click', async ()=>{
   await new Promise(r => setTimeout(r, 0)); // keep UI responsive
   updateSpeedUI();
 });
-speedSave.addEventListener('click', ()=>{
+
+// Add from Gallery inside Speed Add
+speedGalleryBtn?.addEventListener('click', () => speedGallery?.click());
+speedGallery?.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []).filter(f => /^image\//.test(f.type));
+  if (!files.length) return;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (i % 2 === 0) await new Promise(r => setTimeout(r, 0));
+    try {
+      const dataURL = await compressFileToDataURL_Mobile(f);
+      speedQueue.push({ dataURL, ts: Date.now() });
+    } catch (err) {
+      console.warn('Failed to add image from gallery:', err);
+    }
+  }
+  e.target.value = '';
+  updateSpeedUI();
+  alert(`Added ${files.length} photo${files.length!==1?'s':''} from gallery.`);
+});
+
+speedSave?.addEventListener('click', ()=>{
   const category = speedCategory.value.trim();
   const colorHex = colorSelect?.value || '';
   const colorName = colorNameFromHex(colorHex);
   if (!category) { alert('Choose a category first.'); return; }
   const t0 = Date.now();
-  const base = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   speedQueue.forEach((q, i)=>{
     items.push({
       id: (t0+i).toString(),
