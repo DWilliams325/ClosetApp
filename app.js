@@ -1,5 +1,6 @@
 // ---------- Constants ----------
 const STORAGE_KEY = 'closetItems';
+const OUTFIT_KEY  = 'closetOutfits';
 const LAST_CAT_KEY = 'closetLastCategory';
 const THEME_KEY = 'closetTheme';
 
@@ -42,16 +43,19 @@ function applyTheme(theme) {
 
 // ---------- State ----------
 let items = [];
+let outfits = [];
 let activeFilter = 'All';
 let lastSelectedFileDataURL = null;
 
 // Speed Add state
 let speedStream = null;
 let speedQueue = [];  // [{dataURL:string, ts:number}]
-let speedOpen = false;
 
 // Edit modal state
 let editingId = null;
+
+// Outfit Builder state
+let outfitSelectedIds = new Set();
 
 // ---------- Elements ----------
 const catSelect   = $('#category');
@@ -73,8 +77,16 @@ const speedUndo   = $('#speedUndo');
 const speedThumbs = $('#speedThumbs');
 const speedCount  = $('#speedCount');
 const speedCategory = $('#speedCategory');
-const speedGalleryBtn = $('#speedGalleryBtn');
 const speedGallery    = $('#speedGallery');
+// Which categories count as tops vs bottoms
+const TOPS_CATS = new Set(['Button Up', 'T-Shirt', 'Crop-Top', 'Hoodies', 'Dress']);
+const BOTTOMS_CATS = new Set(['Dress Pants', 'Khaki Shorts', 'Basketball Shorts', 'Skirts', 'Sweats']);
+const outfitSelectedTops = $('#outfitSelectedTops');
+const outfitSelectedBottoms = $('#outfitSelectedBottoms');
+
+function isTopCategory(cat){ return TOPS_CATS.has(cat); }
+function isBottomCategory(cat){ return BOTTOMS_CATS.has(cat); }
+
 
 // Theme select
 const themeSelect = document.querySelector('#themeSelect');
@@ -103,19 +115,35 @@ const editPhotoBtn  = $('#editPhotoBtn');
 const editDelete    = $('#editDelete');
 const editSave      = $('#editSave');
 
+// Outfit UI
+const outfitBtn      = $('#outfitBtn');
+const outfitList     = $('#outfitList');
+const outfitEmpty    = $('#outfitEmpty');
+
+const outfitModal    = $('#outfitModal');
+const outfitClose    = $('#outfitClose');
+const outfitCatFilter= $('#outfitCatFilter');
+const outfitColorFilter = $('#outfitColorFilter');
+const outfitGrid     = $('#outfitGrid');
+const outfitSelected = $('#outfitSelected');
+const outfitName     = $('#outfitName');
+const outfitClear    = $('#outfitClear');
+const outfitSaveBtn  = $('#outfitSave');
+
 // ---------- Helpers ----------
+
 function colorNameFromHex(hex){ return (COLORS.find(c=>c.hex===hex)?.name) || ''; }
 
-function populateCategories(selectEl){
-  selectEl.innerHTML = '<option value="">Select a category...</option>';
+function populateCategories(selectEl, withAllPrompt=false){
+  selectEl.innerHTML = withAllPrompt ? '<option value="">All categories</option>' : '<option value="">Select a category...</option>';
   CATEGORIES.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c; opt.textContent = c;
     selectEl.appendChild(opt);
   });
 }
-function populateColorSelect(sel){
-  sel.innerHTML = '<option value="">Select a color...</option>';
+function populateColorSelect(sel, withAllPrompt=false){
+  sel.innerHTML = withAllPrompt ? '<option value="">All colors</option>' : '<option value="">Select a color...</option>';
   COLORS.forEach(c=>{
     const opt = document.createElement('option');
     opt.value = c.hex;
@@ -125,7 +153,6 @@ function populateColorSelect(sel){
 }
 
 function validateForm() {
-  // name removed; require category + photo
   const ok = catSelect.value.trim() && !!lastSelectedFileDataURL;
   addBtn.disabled = !ok;
 }
@@ -135,6 +162,12 @@ function loadItems() {
   catch { items = []; }
 }
 function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+
+function loadOutfits() {
+  try { outfits = JSON.parse(localStorage.getItem(OUTFIT_KEY) || '[]'); }
+  catch { outfits = []; }
+}
+function saveOutfits() { localStorage.setItem(OUTFIT_KEY, JSON.stringify(outfits)); }
 
 function setLastCategory(v){ localStorage.setItem(LAST_CAT_KEY, v||''); }
 function getLastCategory(){ return localStorage.getItem(LAST_CAT_KEY) || ''; }
@@ -216,6 +249,9 @@ if (editCategory) populateCategories(editCategory);
 populateColorSelect(colorSelect);
 if (editColor) populateColorSelect(editColor);
 
+populateCategories(outfitCatFilter, true);
+populateColorSelect(outfitColorFilter, true);
+
 // Theme: initial apply (saved → OS dark → light)
 const savedTheme =
   localStorage.getItem(THEME_KEY) ||
@@ -226,6 +262,8 @@ themeSelect?.addEventListener('change', (e)=> applyTheme(e.target.value));
 const _lastCat = getLastCategory();
 if (_lastCat) { catSelect.value = _lastCat; speedCategory.value = _lastCat; }
 
+loadItems();
+loadOutfits();
 loadDraft();
 validateForm();
 
@@ -314,7 +352,7 @@ addBtn.addEventListener('click', () => {
   render();
 });
 
-// ---------- Render ----------
+// ---------- Render closet ----------
 function renderFilters() {
   filters.innerHTML = '';
   ['All', ...CATEGORIES].forEach(c => {
@@ -357,7 +395,7 @@ function renderList() {
     delBtn.className = 'btn btn-danger'; delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', () => {
       if (!confirm(`Delete this item?`)) return;
-      items = items.filter(x => x.id !== it.id); saveItems(); render();
+      items = items.filter(x => x.id !== it.id); saveItems(); render(); renderOutfits(); // refresh outfits too
     });
 
     const btnRow = document.createElement('div');
@@ -373,7 +411,7 @@ function render() { renderFilters(); renderList(); }
 if (shareBtn) {
   shareBtn.addEventListener('click', async () => {
     try {
-      const payload = { version: 2, items }; // schema v2 (no name)
+      const payload = { version: 2, items };
       const json = JSON.stringify(payload);
       const b64 = toB64(json);
       const base = location.origin + location.pathname;
@@ -443,7 +481,6 @@ function stopSpeedCamera(){
   speedVideo.srcObject = null;
 }
 function openSpeedModal(){
-  speedOpen = true;
   speedModal.style.display = 'flex';
   const sticky = getLastCategory();
   if (sticky) speedCategory.value = sticky;
@@ -452,7 +489,6 @@ function openSpeedModal(){
   startSpeedCamera();
 }
 function closeSpeedModal(){
-  speedOpen = false;
   stopSpeedCamera();
   speedModal.style.display = 'none';
   speedQueue = [];
@@ -484,7 +520,7 @@ speedShutter?.addEventListener('click', async ()=>{
   updateSpeedUI();
 });
 
-// Add from Gallery inside Speed Add
+// Add from Gallery inside Speed Add (trigger via <label for="speedGallery"> in HTML)
 speedGallery?.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []).filter(f => /^image\//.test(f.type));
   if (!files.length) return;
@@ -543,14 +579,14 @@ editPhoto?.addEventListener('change', async (e)=>{
   if (!f || !editingId) return;
   const dataURL = await compressFileToDataURL_Mobile(f);
   items = items.map(x => x.id===editingId ? {...x, imageDataURL: dataURL} : x);
-  saveItems(); render();
+  saveItems(); render(); renderOutfits();
   alert('Photo updated.');
 });
 
 editDelete?.addEventListener('click', ()=>{
   if (!editingId) return;
   items = items.filter(x=>x.id!==editingId);
-  saveItems(); render(); closeEditModal();
+  saveItems(); render(); renderOutfits(); closeEditModal();
 });
 
 editSave?.addEventListener('click', ()=>{
@@ -559,10 +595,221 @@ editSave?.addEventListener('click', ()=>{
   const colorHex = editColor?.value || '';
   const colorName = colorNameFromHex(colorHex);
   items = items.map(x=> x.id===editingId ? {...x, category, colorHex, colorName} : x);
-  saveItems(); render(); closeEditModal();
+  saveItems(); render(); renderOutfits(); closeEditModal();
+});
+
+// ---------- OUTFIT BUILDER ----------
+function openOutfitModal(){
+  outfitSelectedIds = new Set();
+  outfitName.value = '';
+  outfitCatFilter.value = '';
+  outfitColorFilter.value = '';
+  drawOutfitGrid();
+  drawOutfitSelected();
+  outfitSaveBtn.disabled = true;
+  outfitModal.style.display = 'flex';
+}
+function closeOutfitModal(){
+  outfitModal.style.display = 'none';
+}
+
+function drawOutfitGrid(){
+  // filter
+  const cat = outfitCatFilter.value;
+  const colorHex = outfitColorFilter.value;
+  const data = items.filter(it => {
+    const cOk = !cat || it.category === cat;
+    const colOk = !colorHex || it.colorHex === colorHex;
+    return cOk && colOk;
+  });
+
+  outfitGrid.innerHTML = '';
+  data.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.style.cursor = 'pointer';
+    div.setAttribute('data-id', it.id);
+    const sel = outfitSelectedIds.has(it.id);
+    div.innerHTML = `
+      <img src="${it.imageDataURL}" alt="">
+      <div class="c">${it.category}${it.colorName ? ' • ' + it.colorName : ''}</div>
+      ${sel ? '<div style="margin-top:4px;font-size:12px;color:var(--accent-color);font-weight:700;">Selected</div>' : ''}
+    `;
+    div.addEventListener('click', ()=>{
+      if (outfitSelectedIds.has(it.id)) outfitSelectedIds.delete(it.id);
+      else outfitSelectedIds.add(it.id);
+      drawOutfitGrid();
+      drawOutfitSelected();
+    });
+    outfitGrid.appendChild(div);
+  });
+}
+
+function drawOutfitSelected(){
+  outfitSelectedTops.innerHTML = '';
+  outfitSelectedBottoms.innerHTML = '';
+
+  const ids = Array.from(outfitSelectedIds);
+  const tops = [];
+  const bottoms = [];
+
+  ids.forEach(id=>{
+    const it = items.find(x=>x.id===id);
+    if (!it) return;
+    if (isTopCategory(it.category)) tops.push(it);
+    else if (isBottomCategory(it.category)) bottoms.push(it);
+    else {
+      // default to tops if uncategorized—adjust if you add Accessories later
+      tops.push(it);
+    }
+  });
+
+  // Enable/disable Save
+  outfitSaveBtn.disabled = (tops.length + bottoms.length) === 0;
+
+  function renderRow(container, arr){
+    arr.forEach(it=>{
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.style.flex = '0 0 110px';
+      c.innerHTML = `
+        <img src="${it.imageDataURL}" alt="${it.category}" style="width:100%;height:110px;object-fit:cover;border-radius:8px;background:#eee;">
+        <div class="cat">${it.category}${it.colorName ? ' • ' + it.colorName : ''}</div>
+        <button class="btn btn-ghost" style="margin-top:6px;">Remove</button>
+      `;
+      c.querySelector('button').addEventListener('click', ()=>{
+        outfitSelectedIds.delete(it.id);
+        drawOutfitGrid();
+        drawOutfitSelected();
+      });
+      container.appendChild(c);
+    });
+  }
+
+  renderRow(outfitSelectedTops, tops);
+  renderRow(outfitSelectedBottoms, bottoms);
+}
+
+
+function renderOutfits(){
+  outfitList.innerHTML = '';
+  const data = outfits.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  if (!data.length){ outfitEmpty.style.display='block'; return; }
+  outfitEmpty.style.display='none';
+
+  data.forEach(of=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.width = '220px';
+
+    const title = document.createElement('div');
+    title.className = 'name';
+    title.style.marginBottom = '8px';
+    title.textContent = of.name || `Outfit (${(of.itemIds||[]).length} items)`;
+
+    // Split into rows
+    const chosen = (of.itemIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
+    const tops = [];
+    const bottoms = [];
+    chosen.forEach(it=>{
+      if (isTopCategory(it.category)) tops.push(it);
+      else if (isBottomCategory(it.category)) bottoms.push(it);
+      else tops.push(it); // default bucket
+    });
+
+    // Tops row
+    const topsRow = document.createElement('div');
+    topsRow.style.display = 'grid';
+    topsRow.style.gridTemplateColumns = '1fr 1fr';
+    topsRow.style.gap = '4px';
+    topsRow.style.marginBottom = '6px';
+    tops.slice(0,4).forEach(it=>{
+      const img = document.createElement('img');
+      img.src = it.imageDataURL; img.alt = it.category;
+      img.style.width='100%'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
+      topsRow.appendChild(img);
+    });
+    if (!tops.length){
+      const ph = document.createElement('div');
+      ph.textContent = 'No tops';
+      ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
+      topsRow.appendChild(ph);
+    }
+
+    // Bottoms row
+    const bottomsRow = document.createElement('div');
+    bottomsRow.style.display = 'grid';
+    bottomsRow.style.gridTemplateColumns = '1fr 1fr';
+    bottomsRow.style.gap = '4px';
+    bottoms.slice(0,4).forEach(it=>{
+      const img = document.createElement('img');
+      img.src = it.imageDataURL; img.alt = it.category;
+      img.style.width='100%'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
+      bottomsRow.appendChild(img);
+    });
+    if (!bottoms.length){
+      const ph = document.createElement('div');
+      ph.textContent = 'No bottoms';
+      ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
+      bottomsRow.appendChild(ph);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'cat';
+    meta.style.marginTop = '6px';
+    meta.textContent = `${(of.itemIds||[]).length} item${(of.itemIds||[]).length!==1?'s':''}`;
+
+    const del = document.createElement('button');
+    del.className = 'btn btn-danger';
+    del.textContent = 'Delete';
+    del.addEventListener('click', ()=>{
+      if (!confirm('Delete this outfit?')) return;
+      outfits = outfits.filter(x=>x.id !== of.id);
+      saveOutfits(); renderOutfits();
+    });
+
+    card.appendChild(title);
+    card.appendChild(topsRow);
+    card.appendChild(bottomsRow);
+    card.appendChild(meta);
+    card.appendChild(del);
+    outfitList.appendChild(card);
+  });
+}
+
+
+// open/close + handlers
+outfitBtn?.addEventListener('click', openOutfitModal);
+outfitClose?.addEventListener('click', closeOutfitModal);
+outfitModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeOutfitModal);
+
+outfitCatFilter?.addEventListener('change', drawOutfitGrid);
+outfitColorFilter?.addEventListener('change', drawOutfitGrid);
+
+outfitClear?.addEventListener('click', ()=>{
+  outfitSelectedIds.clear();
+  outfitName.value = '';
+  drawOutfitGrid();
+  drawOutfitSelected();
+});
+
+outfitSaveBtn?.addEventListener('click', ()=>{
+  const ids = Array.from(outfitSelectedIds);
+  if (!ids.length) return;
+  const outfit = {
+    id: Date.now().toString(),
+    name: outfitName.value.trim(),
+    itemIds: ids,
+    createdAt: Date.now()
+  };
+  outfits.push(outfit);
+  saveOutfits();
+  renderOutfits();
+  closeOutfitModal();
+  alert('Outfit saved!');
 });
 
 // ---------- Boot ----------
-loadItems();
 render();
+renderOutfits();
 validateForm();

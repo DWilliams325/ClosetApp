@@ -1,201 +1,228 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ClosetTracker</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="wrap">
-      <h1>ClosetTracker</h1>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClosetTracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>ClosetTracker</h1>
 
-      <!-- Theme Selector -->
-      <div id="themeSelector" style="margin: 10px 0; text-align: right">
-        <label for="themeSelect" style="font-weight: bold; margin-right: 6px"
-          >Theme:</label
-        >
-        <select id="themeSelect">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-          <option value="pastel">Pastel</option>
-        </select>
-      </div>
+    <!-- Theme Selector -->
+    <div id="themeSelector" style="margin: 10px 0; text-align: right;">
+      <label for="themeSelect" style="font-weight: bold; margin-right: 6px;">Theme:</label>
+      <select id="themeSelect">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="pastel">Pastel</option>
+      </select>
+    </div>
 
-      <!-- Add Item Card -->
-      <div class="card add-card">
-        <h2 class="card-title">Add a Clothing Item</h2>
+    <!-- Add Item Card -->
+    <div class="card add-card">
+      <h2 class="card-title">Add a Clothing Item</h2>
 
-        <div class="grid-2">
-          <div class="field">
-            <label for="category">Category</label>
-            <select id="category">
-              <option value="">Select a category...</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="color">Color</label>
-            <select id="color">
-              <option value="">Select a color...</option>
-            </select>
-          </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category">
+            <option value="">Select a category...</option>
+          </select>
         </div>
 
-        <div
-          id="dropzone"
-          class="dropzone"
-          role="button"
-          tabindex="0"
-          aria-label="Upload photo"
-        >
-          <div class="dz-inner">
-            <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
-            <div class="dz-text">
-              <strong>Upload photo</strong>
-              <span class="dz-sub"
-                >Drag & drop or click to browse (you can pick multiple)</span
-              >
-            </div>
-          </div>
-          <!-- allow camera capture; supports gallery + multi-select -->
-          <input
-            id="photo"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            class="sr-only"
-            multiple
-          />
-        </div>
-
-        <div class="actions actions-split">
-          <button id="speedBtn" class="btn btn-ghost">
-            Speed Add (Camera)
-          </button>
-          <div class="spacer"></div>
-          <button id="addBtn" class="btn btn-brand" disabled>Add Item</button>
+        <div class="field">
+          <label for="color">Color</label>
+          <select id="color">
+            <option value="">Select a color...</option>
+          </select>
         </div>
       </div>
 
-      <!-- Share/Import Preview Modal (optional) -->
-      <div id="importModal" class="modal" style="display: none">
-        <div class="modal-backdrop"></div>
-        <div class="modal-sheet">
-          <div class="modal-header">
-            <div class="modal-title">Preview Import</div>
-            <button id="closeModal" class="btn btn-ghost">✕</button>
-          </div>
-          <div class="modal-body">
-            <p id="modalSummary" class="modal-summary"></p>
-            <div id="modalGrid" class="modal-grid"></div>
-            <p class="modal-hint">Only the first few items are shown here.</p>
-          </div>
-          <div class="modal-actions">
-            <button id="modalReplace" class="btn btn-danger">Replace</button>
-            <button id="modalMerge" class="btn btn-brand">
-              Import (Merge)
-            </button>
+      <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload photo">
+        <div class="dz-inner">
+          <div class="dz-thumb" id="dzThumb" aria-hidden="true"></div>
+          <div class="dz-text">
+            <strong>Upload photo</strong>
+            <span class="dz-sub">Drag & drop or click to browse (you can pick multiple)</span>
           </div>
         </div>
+        <input id="photo" type="file" accept="image/*" capture="environment" class="sr-only" multiple />
       </div>
 
-      <!-- SPEED ADD CAMERA SHEET -->
-      <div id="speedModal" class="modal" style="display: none">
-        <div class="modal-backdrop"></div>
-        <div class="modal-sheet speed-sheet">
-          <div class="speed-header">
-            <div class="left">
-              <button id="speedClose" class="btn btn-ghost">Close</button>
-            </div>
-            <div class="mid">
-              <select
-                id="speedCategory"
-                class="speed-select"
-                aria-label="Category for captured photos"
-              >
-                <option value="">Select a category…</option>
-              </select>
-            </div>
-            <div class="right">
-              <div class="speed-count">
-                <span id="speedCount">0</span> captured
-              </div>
-            </div>
-          </div>
-
-          <div class="speed-body">
-            <div class="video-wrap">
-              <video id="speedVideo" autoplay playsinline muted></video>
-              <canvas id="speedCanvas" class="sr-only"></canvas>
-              <div class="grid-overlay"></div>
-            </div>
-            <div class="thumbs" id="speedThumbs"></div>
-          </div>
-
-          <div class="speed-actions">
-  <button id="speedUndo" class="btn btn-ghost" disabled>Undo</button>
-
-  <!-- Label triggers file input -->
-  <label for="speedGallery" class="btn btn-ghost">Add from Gallery</label>
-  <input id="speedGallery" type="file" accept="image/*" multiple class="sr-only" />
-
-  <button id="speedShutter" class="btn btn-brand speed-shutter">●</button>
-  <button id="speedSave" class="btn btn-brand" disabled>Save All</button>
-</div>
-
-        </div>
-      </div>
-
-      <div class="list-title">Virtual Closet</div>
-      <div id="filters" class="filters"></div>
-      <div id="list" class="scroller"></div>
-      <div id="empty" class="empty" style="display: none">
-        No items yet — add one above.
+      <div class="actions actions-split">
+        <button id="speedBtn" class="btn btn-ghost">Speed Add (Camera)</button>
+        <div class="spacer"></div>
+        <button id="addBtn" class="btn btn-brand" disabled>Add Item</button>
       </div>
     </div>
 
-    <!-- EDIT ITEM MODAL (name removed) -->
-    <div id="editModal" class="modal" style="display: none">
+    <!-- Share/Import Preview Modal (optional) -->
+    <div id="importModal" class="modal" style="display:none">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
         <div class="modal-header">
-          <div class="modal-title">Edit Item</div>
-          <button id="editClose" class="btn btn-ghost">✕</button>
+          <div class="modal-title">Preview Import</div>
+          <button id="closeModal" class="btn btn-ghost">✕</button>
         </div>
         <div class="modal-body">
-          <div class="grid-2">
-            <div class="field">
-              <label for="editCategory">Category</label>
-              <select id="editCategory"></select>
-            </div>
-            <div class="field">
-              <label for="editColor">Color</label>
-              <select id="editColor"></select>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top: 10px">
-            <button id="editPhotoBtn" class="btn btn-edit">
-              Replace Photo
-            </button>
-            <input
-              id="editPhoto"
-              type="file"
-              accept="image/*"
-              class="sr-only"
-            />
-          </div>
+          <p id="modalSummary" class="modal-summary"></p>
+          <div id="modalGrid" class="modal-grid"></div>
+          <p class="modal-hint">Only the first few items are shown here.</p>
         </div>
-
         <div class="modal-actions">
-          <button id="editDelete" class="btn btn-danger">Delete</button>
-          <div style="flex: 1"></div>
-          <button id="editSave" class="btn btn-brand">Save</button>
+          <button id="modalReplace" class="btn btn-danger">Replace</button>
+          <button id="modalMerge"   class="btn btn-brand">Import (Merge)</button>
         </div>
       </div>
     </div>
 
-    <script src="app.js?v=11" defer></script>
-  </body>
+    <!-- SPEED ADD CAMERA SHEET -->
+    <div id="speedModal" class="modal" style="display:none">
+      <div class="modal-backdrop"></div>
+      <div class="modal-sheet speed-sheet">
+        <div class="speed-header">
+          <div class="left">
+            <button id="speedClose" class="btn btn-ghost">Close</button>
+          </div>
+          <div class="mid">
+            <select id="speedCategory" class="speed-select" aria-label="Category for captured photos">
+              <option value="">Select a category…</option>
+            </select>
+          </div>
+          <div class="right">
+            <div class="speed-count"><span id="speedCount">0</span> captured</div>
+          </div>
+        </div>
+
+        <div class="speed-body">
+          <div class="video-wrap">
+            <video id="speedVideo" autoplay playsinline muted></video>
+            <canvas id="speedCanvas" class="sr-only"></canvas>
+            <div class="grid-overlay"></div>
+          </div>
+          <div class="thumbs" id="speedThumbs"></div>
+        </div>
+
+        <div class="speed-actions">
+          <button id="speedUndo" class="btn btn-ghost" disabled>Undo</button>
+
+          <!-- Mobile-reliable gallery trigger -->
+          <label for="speedGallery" class="btn btn-ghost">Add from Gallery</label>
+          <input id="speedGallery" type="file" accept="image/*" multiple class="sr-only" />
+
+          <button id="speedShutter" class="btn btn-brand speed-shutter">●</button>
+          <button id="speedSave" class="btn btn-brand" disabled>Save All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closet list -->
+    <div class="list-title">Virtual Closet</div>
+    <div id="filters" class="filters"></div>
+    <div id="list" class="scroller"></div>
+    <div id="empty" class="empty" style="display:none">No items yet — add one above.</div>
+
+    <!-- Make Outfit call-to-action -->
+    <div class="actions" style="justify-content:flex-start; margin-top:16px;">
+      <button id="outfitBtn" class="btn btn-brand">Make Outfit</button>
+    </div>
+
+    <!-- Outfits section -->
+    <div class="list-title">Outfits</div>
+    <div id="outfitList" class="scroller"></div>
+    <div id="outfitEmpty" class="empty" style="display:none">No outfits yet — tap “Make Outfit”.</div>
+  </div>
+
+  <!-- EDIT ITEM MODAL -->
+  <div id="editModal" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">Edit Item</div>
+        <button id="editClose" class="btn btn-ghost">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2">
+          <div class="field">
+            <label for="editCategory">Category</label>
+            <select id="editCategory"></select>
+          </div>
+          <div class="field">
+            <label for="editColor">Color</label>
+            <select id="editColor"></select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="editPhotoBtn" class="btn btn-edit">Replace Photo</button>
+          <input id="editPhoto" type="file" accept="image/*" class="sr-only" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="editDelete" class="btn btn-danger">Delete</button>
+        <div style="flex:1"></div>
+        <button id="editSave" class="btn btn-brand">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTFIT BUILDER MODAL (new) -->
+  <div id="outfitModal" class="modal" style="display:none">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">Build an Outfit</div>
+        <button id="outfitClose" class="btn btn-ghost">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Filters (optional, to narrow down items) -->
+        <div class="grid-2">
+          <div class="field">
+            <label for="outfitCatFilter">Filter by Category</label>
+            <select id="outfitCatFilter">
+              <option value="">All categories</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="outfitColorFilter">Filter by Color</label>
+            <select id="outfitColorFilter">
+              <option value="">All colors</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Select from closet -->
+        <div class="list-title" style="margin-top:12px;">Your Closet</div>
+        <div id="outfitGrid" class="modal-grid"></div>
+        <p class="modal-hint">Tap items to select; tap again to unselect.</p>
+
+        <!-- Selected preview (split) -->
+<div class="list-title" style="margin-top:12px;">Selected — Tops</div>
+<div id="outfitSelectedTops" class="scroller"></div>
+
+<div class="list-title" style="margin-top:12px;">Selected — Bottoms</div>
+<div id="outfitSelectedBottoms" class="scroller"></div>
+
+
+        <!-- Outfit name (optional) -->
+        <div class="field" style="margin-top:12px;">
+          <label for="outfitName">Outfit name (optional)</label>
+          <input id="outfitName" type="text" placeholder="e.g. Casual Friday" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="outfitClear" class="btn btn-ghost">Clear</button>
+        <div style="flex:1"></div>
+        <button id="outfitSave" class="btn btn-brand" disabled>Save Outfit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=12" defer></script>
+</body>
 </html>
