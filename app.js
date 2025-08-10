@@ -33,6 +33,7 @@ const COLORS = [
   { name: 'Purple', hex: '#800080' }
 ];
 
+
 // Tops/Bottoms groupings for outfits
 const TOPS_CATS = new Set(['Button Up', 'T-Shirt', 'Crop-Top', 'Hoodies', 'Dress']);
 const BOTTOMS_CATS = new Set(['Dress Pants', 'Khaki Shorts', 'Basketball Shorts', 'Skirts', 'Sweats']);
@@ -134,6 +135,62 @@ const outfitSelectedBottoms = $('#outfitSelectedBottoms');
 const outfitName     = $('#outfitName');
 const outfitClear    = $('#outfitClear');
 const outfitSaveBtn  = $('#outfitSave');
+
+// ---- Live URL previews (Add & Edit) ----
+
+// Add Item preview + spinner
+const imageUrlPreviewWrap = $('#imageUrlPreview');
+const imageUrlPreview = imageUrlPreviewWrap?.querySelector('img');
+const imageUrlSpinner = imageUrlPreviewWrap?.querySelector('.spinner');
+
+imageUrlInput?.addEventListener('input', () => {
+  const url = imageUrlInput.value.trim();
+  if (!imageUrlPreviewWrap || !imageUrlPreview) return;
+
+  if (url) {
+    imageUrlPreviewWrap.style.display = 'block';
+    if (imageUrlSpinner) imageUrlSpinner.style.display = 'block';
+
+    imageUrlPreview.onload = () => { if (imageUrlSpinner) imageUrlSpinner.style.display = 'none'; };
+    imageUrlPreview.onerror = () => {
+      if (imageUrlSpinner) imageUrlSpinner.style.display = 'none';
+      imageUrlPreviewWrap.style.display = 'none';
+    };
+    imageUrlPreview.src = url; // set src last so handlers are ready
+  } else {
+    imageUrlPreviewWrap.style.display = 'none';
+    if (imageUrlSpinner) imageUrlSpinner.style.display = 'none';
+    imageUrlPreview.removeAttribute('src');
+  }
+});
+
+
+// Edit Item preview + spinner
+const editImageUrlPreviewWrap = $('#editImageUrlPreview');
+const editImageUrlPreview = editImageUrlPreviewWrap?.querySelector('img');
+const editImageUrlSpinner = editImageUrlPreviewWrap?.querySelector('.spinner');
+
+editImageUrl?.addEventListener('input', () => {
+  const url = editImageUrl.value.trim();
+  if (!editImageUrlPreviewWrap || !editImageUrlPreview) return;
+
+  if (url) {
+    editImageUrlPreviewWrap.style.display = 'block';
+    if (editImageUrlSpinner) editImageUrlSpinner.style.display = 'block';
+
+    editImageUrlPreview.onload = () => { if (editImageUrlSpinner) editImageUrlSpinner.style.display = 'none'; };
+    editImageUrlPreview.onerror = () => {
+      if (editImageUrlSpinner) editImageUrlSpinner.style.display = 'none';
+      editImageUrlPreviewWrap.style.display = 'none';
+    };
+    editImageUrlPreview.src = url;
+  } else {
+    editImageUrlPreviewWrap.style.display = 'none';
+    if (editImageUrlSpinner) editImageUrlSpinner.style.display = 'none';
+    editImageUrlPreview.removeAttribute('src');
+  }
+});
+
 
 // ---------- Helpers ----------
 function colorNameFromHex(hex){ return (COLORS.find(c=>c.hex===hex)?.name) || ''; }
@@ -318,6 +375,8 @@ dropzone.addEventListener('drop', async (e) => {
   validateForm();
   saveDraft();
 });
+
+
 
 // File input change (supports batch)
 photoInput.addEventListener('change', async (e) => {
@@ -622,6 +681,30 @@ function openEditModal(item){
   if (editCategory)  editCategory.value = item.category || '';
   if (editColor)     editColor.value = item.colorHex || '';
   if (editImageUrl)  editImageUrl.value = item.imageURL || '';
+  // Initialize the edit URL preview on open
+// Initialize the edit URL preview on open
+if (editImageUrlPreviewWrap && editImageUrlPreview) {
+  const u = item.imageURL || '';
+  if (u) {
+    editImageUrlPreviewWrap.style.display = 'block';
+    const spinner = editImageUrlPreviewWrap.querySelector('.spinner');
+    if (spinner) spinner.style.display = 'block';
+
+    editImageUrlPreview.onload = () => { if (spinner) spinner.style.display = 'none'; };
+    editImageUrlPreview.onerror = () => {
+      if (spinner) spinner.style.display = 'none';
+      editImageUrlPreviewWrap.style.display = 'none';
+    };
+    editImageUrlPreview.src = u;
+  } else {
+    editImageUrlPreviewWrap.style.display = 'none';
+    const spinner = editImageUrlPreviewWrap.querySelector('.spinner');
+    if (spinner) spinner.style.display = 'none';
+    editImageUrlPreview.removeAttribute('src');
+  }
+}
+
+
   editModal.style.display = 'flex';
 }
 function closeEditModal(){
@@ -832,6 +915,8 @@ function renderOutfits(){
     outfitList.appendChild(card);
   });
 }
+
+
 
 // open/close + handlers
 outfitBtn?.addEventListener('click', openOutfitModal);

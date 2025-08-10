@@ -208,3 +208,12 @@ body {
   background: var(--card-bg);
   color: var(--text-color);
 }
+
+.spinner{
+  border:4px solid #f3f3f3;
+  border-top:4px solid #555;
+  border-radius:50%;
+  width:24px; height:24px;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
