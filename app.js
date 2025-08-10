@@ -44,12 +44,6 @@ let speedOpen = false;
 // Edit modal state
 let editingId = null;
 
-<<<<<<< HEAD
-// Edit modal state
-let editingId = null;
-
-=======
->>>>>>> c77763e68d8150261dc3a58be5e36a89b97c613d
 // ---------- Elements ----------
 const nameInput   = $('#name');
 const catSelect   = $('#category');
@@ -71,11 +65,7 @@ const speedThumbs = $('#speedThumbs');
 const speedCount  = $('#speedCount');
 const speedCategory = $('#speedCategory');
 
-<<<<<<< HEAD
 // Share / import (optional)
-=======
-// Share / import (optional if you don't show a Share button)
->>>>>>> c77763e68d8150261dc3a58be5e36a89b97c613d
 const shareBtn     = $('#shareBtn');
 const importModal  = $('#importModal');
 const closeModal   = $('#closeModal');
@@ -88,7 +78,6 @@ const modalMerge   = $('#modalMerge');
 const dropzone   = $('#dropzone');
 const dzThumb    = $('#dzThumb');
 const photoInput = $('#photo');
-<<<<<<< HEAD
 
 // Edit modal
 const editModal     = $('#editModal');
@@ -100,8 +89,6 @@ const editPhoto     = $('#editPhoto');
 const editPhotoBtn  = $('#editPhotoBtn');
 const editDelete    = $('#editDelete');
 const editSave      = $('#editSave');
-=======
->>>>>>> c77763e68d8150261dc3a58be5e36a89b97c613d
 
 // ---------- Helpers ----------
 function colorNameFromHex(hex){ return (COLORS.find(c=>c.hex===hex)?.name) || ''; }
@@ -196,10 +183,6 @@ async function compressFileToDataURL_Mobile(file) {
   if (bmp && typeof bmp.close === 'function') { try { bmp.close(); } catch {} }
   return canvasToJPEGDataURL(canvas, 0.8);
 }
-<<<<<<< HEAD
-=======
-// grab video frame
->>>>>>> c77763e68d8150261dc3a58be5e36a89b97c613d
 function compressVideoFrameToDataURL(videoEl){
   const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
   if (!vw || !vh) return null;
@@ -221,15 +204,19 @@ function suggestNameFromFile(file){
 // ---------- Init ----------
 populateCategories(catSelect);
 populateCategories(speedCategory);
-<<<<<<< HEAD
 if (editCategory) populateCategories(editCategory);
 
 populateColorSelect(colorSelect);
 if (editColor) populateColorSelect(editColor);
-=======
-populateColorSelect(colorSelect);
->>>>>>> c77763e68d8150261dc3a58be5e36a89b97c613d
-ck', () => photoInput.click());
+
+const _lastCat = getLastCategory();
+if (_lastCat) { catSelect.value = _lastCat; speedCategory.value = _lastCat; }
+
+loadDraft();
+validateForm();
+
+// ---------- Dropzone ----------
+dropzone.addEventListener('click', () => photoInput.click());
 dropzone.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photoInput.click(); }
 });
