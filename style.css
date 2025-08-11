@@ -217,3 +217,14 @@ body {
   animation: spin .8s linear infinite;
 }
 @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+/* Safe area handling for iOS notch devices */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.wrap {
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}

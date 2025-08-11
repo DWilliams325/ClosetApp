@@ -416,6 +416,20 @@ photoInput.addEventListener('change', async (e) => {
   validateForm();
   saveDraft();
 });
+// iOS A2HS tip (one-time)
+(function () {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isIOS && !isStandalone && !localStorage.getItem('iosA2HS_seen')) {
+    const bar = document.getElementById('iosA2HS');
+    const close = document.getElementById('iosA2HSClose');
+    if (bar) bar.style.display = 'block';
+    close?.addEventListener('click', () => {
+      bar.style.display = 'none';
+      localStorage.setItem('iosA2HS_seen', '1');
+    });
+  }
+})();
 
 // ---------- Add via URL ----------
 useUrlBtn?.addEventListener('click', () => {
@@ -747,6 +761,34 @@ editSave?.addEventListener('click', ()=>{
   items = items.map(x=> x.id===editingId ? {...x, category, colorHex, colorName} : x);
   saveItems(); render(); renderOutfits(); closeEditModal();
 });
+
+// iOS Safari "Add to Home Screen" tip
+(function () {
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isSafari = /safari/.test(ua) && !/crios|fxios|edgios/.test(ua);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+  if (isIOS && isSafari && !isStandalone && !localStorage.getItem('iosA2HS_seen')) {
+    const bar = document.createElement('div');
+    bar.id = 'iosA2HS';
+    bar.style.cssText = `
+      background: #222; color: #fff; padding: 10px;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 9999; text-align: center; font-size: 14px;
+    `;
+    bar.innerHTML = `
+      <span>📱 Add this app to your Home Screen: tap <strong>Share</strong> → <strong>Add to Home Screen</strong></span>
+      <button id="iosA2HSClose" style="margin-left: 10px; background:none; border:none; color:#fff; font-weight:bold;">✕</button>
+    `;
+    document.body.appendChild(bar);
+
+    document.getElementById('iosA2HSClose').addEventListener('click', () => {
+      bar.remove();
+      localStorage.setItem('iosA2HS_seen', '1');
+    });
+  }
+})();
 
 // ---------- OUTFIT BUILDER ----------
 function openOutfitModal(){
