@@ -961,7 +961,18 @@ function renderOutfits(){
 
 
 // open/close + handlers
-outfitBtn?.addEventListener('click', openOutfitModal);
+// Safer binding with a quick health check + console hint
+if (outfitBtn) {
+  outfitBtn.addEventListener('click', () => {
+    try { openOutfitModal(); }
+    catch (e) {
+      console.error('[Outfit] Failed to open modal:', e);
+      alert('Could not open the Outfit builder. Check console for details.');
+    }
+  });
+} else {
+  console.warn('[Outfit] #outfitBtn not found on the page.');
+}
 outfitClose?.addEventListener('click', closeOutfitModal);
 outfitModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeOutfitModal);
 
