@@ -13,9 +13,12 @@ const THEME_KEY     = 'closetTheme';
 const DRAFT_KEY     = 'closetDraft'; // preserves last add form (category + thumb)
 
 const CATEGORIES = [
-  'Dress','Button Up','T-Shirt','Crop-Top','Dress Pants','Khaki Shorts',
-  'Basketball Shorts','Skirts','Hoodies','Sweats'
+  'Dress','Button Up','T-Shirt','Crop-Top','Hoodies',
+  'Dress Pants','Jeans','Leggings','Shorts','Khaki Shorts','Basketball Shorts','Skirts','Sweats',
+  'Heels','Sneakers','Boots','Dress Shoes','Sandals','Flats'
 ];
+
+
 
 const COLORS = [
   { name: 'Black',  hex: '#000000' },
@@ -38,11 +41,17 @@ const COLORS = [
   { name: 'Purple', hex: '#800080' }
 ];
 
-// Tops/Bottoms groupings for outfits
-const TOPS_CATS    = new Set(['Button Up','T-Shirt','Crop-Top','Hoodies','Dress']);
-const BOTTOMS_CATS = new Set(['Dress Pants','Khaki Shorts','Basketball Shorts','Skirts','Sweats']);
+// Tops/Bottoms/Shoes groupings for outfits
+const TOPS_CATS    = new Set(['Dress','Button Up','T-Shirt','Crop-Top','Hoodies']);
+const BOTTOMS_CATS = new Set([
+  'Dress Pants','Jeans','Leggings','Shorts','Khaki Shorts','Basketball Shorts','Skirts','Sweats'
+]);
+const SHOES_CATS = new Set(['Heels','Sneakers','Boots','Dress Shoes','Sandals','Flats','Shoes']); // 'Shoes' kept for old data
+
 const isTopCategory    = (cat) => TOPS_CATS.has(cat);
 const isBottomCategory = (cat) => BOTTOMS_CATS.has(cat);
+const isShoeCategory   = (cat) => SHOES_CATS.has(cat);
+
 
 // ---------- Theme helpers ----------
 function applyTheme(theme) {
@@ -78,6 +87,8 @@ const list        = $('#list');
 const empty       = $('#empty');
 
 const themeSelect = $('#themeSelect');
+const outfitSelectedShoes = $('#outfitSelectedShoes');
+
 
 // Dropzone & original file input
 const dropzone   = $('#dropzone');
@@ -831,26 +842,34 @@ function drawOutfitGrid(){
     outfitGrid.appendChild(div);
   });
 }
+// ---------- OUTFIT BUILDER (Selected preview) ----------
 function drawOutfitSelected(){
-  if (!outfitSelectedTops || !outfitSelectedBottoms) return;
+  if (!outfitSelectedTops || !outfitSelectedBottoms || !outfitSelectedShoes) return;
 
+  // Clear rows
   outfitSelectedTops.innerHTML = '';
   outfitSelectedBottoms.innerHTML = '';
+  outfitSelectedShoes.innerHTML = '';
 
+  // Bucket the selected items
   const ids = Array.from(outfitSelectedIds);
   const tops = [];
   const bottoms = [];
+  const shoes = [];
 
-  ids.forEach(id=>{
-    const it = items.find(x=>x.id===id);
+  ids.forEach(id => {
+    const it = items.find(x => x.id === id);
     if (!it) return;
-    if (isTopCategory(it.category)) tops.push(it);
+    if (isShoeCategory(it.category)) shoes.push(it);
+    else if (isTopCategory(it.category)) tops.push(it);
     else if (isBottomCategory(it.category)) bottoms.push(it);
-    else tops.push(it);
+    else tops.push(it); // fallback
   });
 
-  if (outfitSaveBtn) outfitSaveBtn.disabled = (tops.length + bottoms.length) === 0;
+  // Enable save only if at least one item is selected
+  if (outfitSaveBtn) outfitSaveBtn.disabled = (tops.length + bottoms.length + shoes.length) === 0;
 
+  // Renderer
   function renderRow(container, arr){
     arr.forEach(it=>{
       const c = document.createElement('div');
@@ -869,14 +888,22 @@ function drawOutfitSelected(){
       container.appendChild(c);
     });
   }
+
   renderRow(outfitSelectedTops, tops);
   renderRow(outfitSelectedBottoms, bottoms);
+  renderRow(outfitSelectedShoes, shoes);
 }
+
+
 function renderOutfits(){
   if (!outfitList || !outfitEmpty) return;
   outfitList.innerHTML = '';
+
   const data = outfits.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
-  if (!data.length){ outfitEmpty.style.display='block'; return; }
+  if (!data.length){
+    outfitEmpty.style.display='block';
+    return;
+  }
   outfitEmpty.style.display='none';
 
   data.forEach(of=>{
@@ -884,20 +911,25 @@ function renderOutfits(){
     card.className = 'card';
     card.style.width = '220px';
 
+    // Title
     const title = document.createElement('div');
     title.className = 'name';
     title.style.marginBottom = '8px';
     title.textContent = of.name || `Outfit (${(of.itemIds||[]).length} items)`;
 
+    // Gather chosen items + bucket
     const chosen = (of.itemIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
     const tops = [];
     const bottoms = [];
+    const shoes = [];
     chosen.forEach(it=>{
-      if (isTopCategory(it.category)) tops.push(it);
+      if (isShoeCategory(it.category)) shoes.push(it);
+      else if (isTopCategory(it.category)) tops.push(it);
       else if (isBottomCategory(it.category)) bottoms.push(it);
       else tops.push(it);
     });
 
+    // Build rows
     const topsRow = document.createElement('div');
     topsRow.style.display = 'grid';
     topsRow.style.gridTemplateColumns = '1fr 1fr';
@@ -919,6 +951,7 @@ function renderOutfits(){
     bottomsRow.style.display = 'grid';
     bottomsRow.style.gridTemplateColumns = '1fr 1fr';
     bottomsRow.style.gap = '4px';
+    bottomsRow.style.marginBottom = '6px';
     bottoms.slice(0,4).forEach(it=>{
       const img = document.createElement('img');
       img.src = getImageSrc(it); img.alt = it.category;
@@ -931,6 +964,23 @@ function renderOutfits(){
       bottomsRow.appendChild(ph);
     }
 
+    const shoesRow = document.createElement('div');
+    shoesRow.style.display = 'grid';
+    shoesRow.style.gridTemplateColumns = '1fr 1fr';
+    shoesRow.style.gap = '4px';
+    shoes.slice(0,4).forEach(it=>{
+      const img = document.createElement('img');
+      img.src = getImageSrc(it); img.alt = it.category;
+      img.style.width='100%'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
+      shoesRow.appendChild(img);
+    });
+    if (!shoes.length){
+      const ph = document.createElement('div');
+      ph.textContent = 'No shoes'; ph.style.fontSize='12px'; ph.style.color='var(--text-color)';
+      shoesRow.appendChild(ph);
+    }
+
+    // Meta + delete
     const meta = document.createElement('div');
     meta.className = 'cat';
     meta.style.marginTop = '6px';
@@ -945,14 +995,18 @@ function renderOutfits(){
       saveOutfits(); renderOutfits();
     });
 
+    // Append in order
     card.appendChild(title);
     card.appendChild(topsRow);
     card.appendChild(bottomsRow);
+    card.appendChild(shoesRow);
     card.appendChild(meta);
     card.appendChild(del);
+
     outfitList.appendChild(card);
   });
 }
+
 
 // open/close + handlers (safe binding)
 if (outfitBtn) {

@@ -248,55 +248,60 @@
       </div>
     </div>
 
-    <!-- OUTFIT BUILDER MODAL -->
-    <div id="outfitModal" class="modal" style="display: none">
-      <div class="modal-backdrop"></div>
-      <div class="modal-sheet">
-        <div class="modal-header">
-          <div class="modal-title">Build an Outfit</div>
-          <button id="outfitClose" class="btn btn-ghost">✕</button>
+  <!-- OUTFIT BUILDER MODAL -->
+<div id="outfitModal" class="modal" style="display: none">
+  <div class="modal-backdrop"></div>
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Build an Outfit</div>
+      <button id="outfitClose" class="btn btn-ghost">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="field">
+          <label for="outfitCatFilter">Filter by Category</label>
+          <select id="outfitCatFilter">
+            <option value="">All categories</option>
+          </select>
         </div>
-
-        <div class="modal-body">
-          <div class="grid-2">
-            <div class="field">
-              <label for="outfitCatFilter">Filter by Category</label>
-              <select id="outfitCatFilter">
-                <option value="">All categories</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="outfitColorFilter">Filter by Color</label>
-              <select id="outfitColorFilter">
-                <option value="">All colors</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="list-title" style="margin-top: 12px">Your Closet</div>
-          <div id="outfitGrid" class="modal-grid"></div>
-          <p class="modal-hint">Tap items to select; tap again to unselect.</p>
-
-          <!-- Selected (split) -->
-          <div class="list-title" style="margin-top: 12px">Selected — Tops</div>
-          <div id="outfitSelectedTops" class="scroller"></div>
-
-          <div class="list-title" style="margin-top: 12px">Selected — Bottoms</div>
-          <div id="outfitSelectedBottoms" class="scroller"></div>
-
-          <div class="field" style="margin-top: 12px">
-            <label for="outfitName">Outfit name (optional)</label>
-            <input id="outfitName" type="text" placeholder="e.g. Casual Friday" />
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button id="outfitClear" class="btn btn-ghost">Clear</button>
-          <div style="flex: 1"></div>
-          <button id="outfitSave" class="btn btn-brand" disabled>Save Outfit</button>
+        <div class="field">
+          <label for="outfitColorFilter">Filter by Color</label>
+          <select id="outfitColorFilter">
+            <option value="">All colors</option>
+          </select>
         </div>
       </div>
+
+      <div class="list-title" style="margin-top: 12px">Your Closet</div>
+      <div id="outfitGrid" class="modal-grid"></div>
+      <p class="modal-hint">Tap items to select; tap again to unselect.</p>
+
+      <!-- Selected (split) -->
+      <div class="list-title" style="margin-top: 12px">Selected — Tops</div>
+      <div id="outfitSelectedTops" class="scroller"></div>
+
+      <div class="list-title" style="margin-top: 12px">Selected — Bottoms</div>
+      <div id="outfitSelectedBottoms" class="scroller"></div>
+
+      <!-- NEW: Shoes strip -->
+      <div class="list-title" style="margin-top: 12px">Selected — Shoes</div>
+      <div id="outfitSelectedShoes" class="scroller"></div>
+
+      <div class="field" style="margin-top: 12px">
+        <label for="outfitName">Outfit name (optional)</label>
+        <input id="outfitName" type="text" placeholder="e.g. Casual Friday" />
+      </div>
     </div>
+
+    <div class="modal-actions">
+      <button id="outfitClear" class="btn btn-ghost">Clear</button>
+      <div style="flex: 1"></div>
+      <button id="outfitSave" class="btn btn-brand" disabled>Save Outfit</button>
+    </div>
+  </div>
+</div>
+
 
     <!-- App JS -->
     <script src="app.js?v=13" defer></script>
