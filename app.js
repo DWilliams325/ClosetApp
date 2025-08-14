@@ -11,6 +11,16 @@ const OUTFIT_KEY    = 'closetOutfits';
 const LAST_CAT_KEY  = 'closetLastCategory';
 const THEME_KEY     = 'closetTheme';
 const DRAFT_KEY     = 'closetDraft'; // preserves last add form (category + thumb)
+const helpBtn = $('#helpBtn');
+const helpModal = $('#helpModal');
+const helpClose = $('#helpClose');
+const helpCloseBottom = $('#helpCloseBottom');
+const listCatFilter   = $('#listCatFilter');
+const listColorFilter = $('#listColorFilter');
+const listSearch      = $('#listSearch');
+const filtersClear    = $('#filtersClear');
+
+
 
 const CATEGORIES = [
   'Dress','Button Up','T-Shirt','Crop-Top','Hoodies',
@@ -274,6 +284,25 @@ function loadDraft(){
   } catch {}
 }
 
+
+helpBtn?.addEventListener('click', () => { if (helpModal) helpModal.style.display = 'flex'; });
+helpClose?.addEventListener('click', () => { if (helpModal) helpModal.style.display = 'none'; });
+helpCloseBottom?.addEventListener('click', () => { if (helpModal) helpModal.style.display = 'none'; });
+helpModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => {
+  helpModal.style.display = 'none';
+});
+
+listCatFilter?.addEventListener('change', render);
+listColorFilter?.addEventListener('change', render);
+listSearch?.addEventListener('input', render);
+filtersClear?.addEventListener('click', () => {
+  if (listCatFilter) listCatFilter.value = '';
+  if (listColorFilter) listColorFilter.value = '';
+  if (listSearch) listSearch.value = '';
+  render();
+});
+
+
 // ---------- Image utils (mobile-friendly) ----------
 async function fileToImage(file) {
   return new Promise((res, rej) => {
@@ -334,6 +363,10 @@ populateCategories(outfitCatFilter, true);
 populateColorSelect(colorSelect);
 populateColorSelect(editColor);
 populateColorSelect(outfitColorFilter, true);
+
+populateCategories(listCatFilter, true);     // “All categories”
+populateColorSelect(listColorFilter, true);  // “All colors”
+
 
 // Theme: initial apply (saved → OS dark → light)
 const savedTheme =
@@ -513,11 +546,33 @@ function renderFilters() {
 }
 function renderList() {
   if (!list || !empty) return;
-  const data = activeFilter === 'All' ? items : items.filter(it => it.category === activeFilter);
+
+  const cat      = listCatFilter?.value || '';     // '' = all
+  const colorHex = listColorFilter?.value || '';   // '' = all
+  const q        = (listSearch?.value || '').trim().toLowerCase();
+
+  let data = items.filter(it => {
+    const catOK   = !cat      || it.category === cat;
+    const colorOK = !colorHex || it.colorHex === colorHex;
+    return catOK && colorOK;
+  });
+
+  if (q) {
+    data = data.filter(it =>
+      it.category.toLowerCase().includes(q) ||
+      (it.colorName || '').toLowerCase().includes(q)
+    );
+  }
+
+  // ✅ clear and empty-state handling
   list.innerHTML = '';
-  if (!data.length) { empty.style.display = 'block'; return; }
+  if (!data.length) {
+    empty.style.display = 'block';
+    return;
+  }
   empty.style.display = 'none';
 
+  // existing card rendering
   data.forEach(it => {
     const card = document.createElement('div'); card.className = 'card';
 
@@ -526,7 +581,10 @@ function renderList() {
     img.src = getImageSrc(it); img.alt = it.category;
     card.appendChild(img);
 
-    const catEl = document.createElement('div'); catEl.className = 'cat'; catEl.textContent = it.category; card.appendChild(catEl);
+    const catEl = document.createElement('div');
+    catEl.className = 'cat';
+    catEl.textContent = it.category;
+    card.appendChild(catEl);
 
     if (it.colorHex){
       const dot = document.createElement('span');
@@ -549,13 +607,18 @@ function renderList() {
     });
 
     const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex'; btnRow.style.flexDirection = 'column'; btnRow.style.gap = '6px';
-    btnRow.appendChild(editBtn); btnRow.appendChild(delBtn); card.appendChild(btnRow);
+    btnRow.style.display = 'flex';
+    btnRow.style.flexDirection = 'column';
+    btnRow.style.gap = '6px';
+    btnRow.appendChild(editBtn);
+    btnRow.appendChild(delBtn);
+    card.appendChild(btnRow);
 
     list.appendChild(card);
   });
 }
-function render(){ renderFilters(); renderList(); }
+
+function render(){ renderList(); }
 
 // ---------- Share link + modal (optional) ----------
 shareBtn?.addEventListener('click', async () => {

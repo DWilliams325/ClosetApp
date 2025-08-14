@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>ClosetTracker</title>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#4cafef" />
 
@@ -31,7 +32,7 @@
 
     <div class="wrap">
       <h1>ClosetTracker</h1>
-
+<button id="helpBtn" class="btn btn-ghost" style="float:right; margin-top:-42px">❓ Help</button>
       <!-- Theme Selector -->
       <div id="themeSelector" style="margin: 10px 0; text-align: right">
         <label for="themeSelect" style="font-weight: bold; margin-right: 6px">Theme:</label>
@@ -185,7 +186,13 @@
 
       <!-- Closet list -->
       <div class="list-title">Virtual Closet</div>
-      <div id="filters" class="filters"></div>
+<!-- Compact filter bar (mobile-friendly) -->
+<div id="filtersBar" class="row" style="gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0 10px;">
+  <select id="listCatFilter" style="flex:1; min-width:140px"></select>
+  <select id="listColorFilter" style="flex:1; min-width:140px"></select>
+  <input id="listSearch" type="search" placeholder="Search category or color" style="flex:2; min-width:160px" />
+  <button id="filtersClear" class="btn btn-ghost">Clear</button>
+</div>
       <div id="list" class="scroller"></div>
       <div id="empty" class="empty" style="display: none">No items yet — add one above.</div>
 
@@ -298,6 +305,89 @@
       <button id="outfitClear" class="btn btn-ghost">Clear</button>
       <div style="flex: 1"></div>
       <button id="outfitSave" class="btn btn-brand" disabled>Save Outfit</button>
+    </div>
+  </div>
+</div>
+<!-- HELP / TUTORIAL MODAL -->
+<div id="helpModal" class="modal" style="display:none;">
+  <div class="modal-backdrop"></div>
+  <div class="modal-sheet" style="max-width:820px;">
+    <div class="modal-header">
+      <div class="modal-title">Quick Start Tutorial</div>
+      <button id="helpClose" class="btn btn-ghost">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="card">
+        <h3>1) Add items</h3>
+        <ol>
+          <li>Pick a <strong>Category</strong> and (optional) <strong>Color</strong>.</li>
+          <li>Tap <strong>Upload photo</strong> (or drag & drop on desktop).</li>
+          <li>Press <strong>Add Item</strong>.</li>
+        </ol>
+        <p class="modal-hint">Tip: The app remembers your last category to speed things up.</p>
+      </div>
+
+      <div class="card">
+        <h3>2) Speed Add (camera)</h3>
+        <ol>
+          <li>Tap <strong>Speed Add (Camera)</strong>.</li>
+          <li>Choose a category at the top.</li>
+          <li>Tap the big shutter to capture; thumbnails appear below.</li>
+          <li>Tap <strong>Save All</strong> to add them at once.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>3) Add via image URL</h3>
+        <ol>
+          <li>Copy a direct link ending in <code>.jpg</code>, <code>.png</code>, or <code>.webp</code>.</li>
+          <li>Paste it into <strong>Or paste an image URL</strong> → <strong>Use URL</strong>.</li>
+          <li>Press <strong>Add Item</strong>.</li>
+        </ol>
+        <p class="modal-hint"><strong>iPhone:</strong> long-press the image in Safari → <em>Open Image in New Tab</em> → copy the address bar.</p>
+      </div>
+
+      <div class="card">
+        <h3>4) Categories & colors</h3>
+        <ul>
+          <li>Use the chips under <strong>Virtual Closet</strong> to filter; tap <strong>All</strong> to reset.</li>
+          <li>Shoe types supported: <em>Heels, Sneakers, Boots, Dress Shoes, Sandals, Flats</em>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>5) Build an outfit</h3>
+        <ol>
+          <li>Tap <strong>Make Outfit</strong>.</li>
+          <li>Filter by category/color if you like.</li>
+          <li>Tap items in <strong>Your Closet</strong> to select/unselect.</li>
+          <li>Selected pieces appear under <strong>Tops</strong>, <strong>Bottoms</strong>, and <strong>Shoes</strong>.</li>
+          <li>(Optional) Name it, then <strong>Save Outfit</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>6) Edit / delete items</h3>
+        <p>On any card, use <strong>Edit</strong> to change category, color, or photo; use <strong>Delete</strong> to remove.</p>
+      </div>
+
+      <div class="card">
+        <h3>7) Share / Import</h3>
+        <p>Generate a link that encodes your items so someone else can preview, merge, or replace their closet.</p>
+      </div>
+
+      <div class="card">
+        <h3>Tips</h3>
+        <ul>
+          <li><strong>Offline:</strong> Works after first load. If updates don’t show, hard-refresh or bump <code>app.js?v=14</code>.</li>
+          <li><strong>Add to Home Screen (iPhone):</strong> Safari → Share → <em>Add to Home Screen</em>.</li>
+          <li><strong>Back up:</strong> Use Share/Import to keep a copy of your closet.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <div style="flex:1"></div>
+      <button id="helpCloseBottom" class="btn btn-brand">Got it</button>
     </div>
   </div>
 </div>
